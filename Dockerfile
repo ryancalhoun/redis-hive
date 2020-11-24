@@ -9,4 +9,4 @@ RUN make
 
 FROM ubuntu:18.04
 
-COPY --from=build bin/redis-proxy .
+COPY --from=build bin/redis-hive .

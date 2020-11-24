@@ -1,6 +1,6 @@
 CC          := g++
 
-TARGET      := redis-proxy
+TARGET      := redis-hive
 
 SRCDIR      := src
 INCDIR      := include
