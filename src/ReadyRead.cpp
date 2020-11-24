@@ -13,15 +13,15 @@ ReadyRead::ReadyRead()
 
 ReadyRead::~ReadyRead()
 {
-	std::map<int,ICallback*>::const_iterator it;
+	std::map<int,Info>::const_iterator it;
 	for(it = _callback.begin(); it != _callback.end(); ++it) {
-		delete it->second;
+		delete it->second.cb;
 		_callback.erase(it);
 	}
 	::close(_waiter);
 }
 
-void ReadyRead::add(int fd, ICallback* callback)
+void ReadyRead::add(int fd, ICallback* callback, Type type)
 {
 	struct epoll_event ev = { 0 };
 	ev.data.fd = fd;
@@ -31,15 +31,26 @@ void ReadyRead::add(int fd, ICallback* callback)
 	if(::epoll_ctl(_waiter, EPOLL_CTL_ADD, fd, &ev) != 0 && errno == EEXIST) {
 		::epoll_ctl(_waiter, EPOLL_CTL_MOD, fd, &ev);
 	}
-	_callback[fd] = callback;
+	Info info = { callback, type };
+	_callback[fd] = info;
+}
+
+void ReadyRead::removeAll(Type type)
+{
+	std::map<int,Info>::const_iterator it;
+	for(it = _callback.begin(); it != _callback.end(); ++it) {
+		if(it->second.type == type) {
+			_callback.erase(it);
+		}
+	}
 }
 
 void ReadyRead::remove(int fd)
 {
 	::epoll_ctl(_waiter, EPOLL_CTL_DEL, fd, NULL);
-	std::map<int,ICallback*>::const_iterator it = _callback.find(fd);
+	std::map<int,Info>::const_iterator it = _callback.find(fd);
 	if(it != _callback.end()) {
-		delete it->second;
+		delete it->second.cb;
 		_callback.erase(it);
 	}
 }
@@ -56,9 +67,9 @@ int ReadyRead::next()
 	struct epoll_event ev = { 0 };
 
 	if(::epoll_wait(_waiter, &ev, 1, -1) != -1) {
-		std::map<int,ICallback*>::const_iterator it = _callback.find(ev.data.fd);
+		std::map<int,Info>::const_iterator it = _callback.find(ev.data.fd);
 		if(it != _callback.end()) {
-			return (*it->second)(it->first);
+			return (*it->second.cb)(it->first);
 		}
 	}
 	return None;

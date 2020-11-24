@@ -1,5 +1,4 @@
 #include <string>
-#include <set>
 
 class IReadyRead;
 struct sockaddr_in;
@@ -18,12 +17,10 @@ public:
 
 	int accept(int client);
 	int copy(int from, int to);
-	void close(int fd);
 
 protected:
 	IReadyRead& _readyRead;
 	int _server;
 	struct sockaddr_in& _proxy;
-	std::set<int> _sockets;
 };
 

@@ -9,7 +9,8 @@ public:
 	ReadyRead();
 	virtual ~ReadyRead();
 
-	void add(int fd, ICallback* cb);
+	void add(int fd, ICallback* cb, Type type);
+	void removeAll(Type type);
 	void remove(int fd);
 
 	void run();
@@ -18,6 +19,11 @@ public:
 
 protected:
 	int _waiter;
-	std::map<int,ICallback*> _callback;
+	struct Info
+	{
+		ICallback* cb;
+		Type type;
+	};
+	std::map<int,Info> _callback;
 };
 

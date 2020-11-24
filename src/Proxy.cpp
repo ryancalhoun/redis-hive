@@ -40,7 +40,7 @@ namespace
 
 		~Copy()
 		{
-			_proxy.close(_to);
+			::close(_to);
 		}
 
 		int operator()(int fd)
@@ -82,10 +82,7 @@ void Proxy::address(const std::string& address, int port)
 
 void Proxy::reset()
 {
-	std::set<int>::const_iterator it;
-	for(it = _sockets.begin(); it != _sockets.end(); ++it) {
-		close(*it);
-	}
+	_readyRead.removeAll(IReadyRead::Volatile);
 }
 
 bool Proxy::listen(int port)
@@ -138,11 +135,8 @@ int Proxy::accept(int fd)
 		return -1;
 	}
 
-	_readyRead.add(client, new Copy(*this, sock));
-	_readyRead.add(sock, new Copy(*this, client));
-
-	_sockets.insert(client);
-	_sockets.insert(sock);
+	_readyRead.add(client, new Copy(*this, sock), IReadyRead::Volatile);
+	_readyRead.add(sock, new Copy(*this, client), IReadyRead::Volatile);
 
 	return 0;
 }
@@ -165,8 +159,3 @@ int Proxy::copy(int from, int to)
 	return 0;
 }
 
-void Proxy::close(int fd)
-{
-	::close(fd);
-	_sockets.erase(fd);
-}
