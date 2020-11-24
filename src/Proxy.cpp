@@ -1,4 +1,5 @@
 #include "Proxy.h"
+#include "IReadyRead.h"
 
 #include <cstdio> 
 #include <cstdlib> 
@@ -8,44 +9,87 @@
 
 #include <netinet/in.h> 
 #include <unistd.h>
-#include <sys/epoll.h>
 #include <sys/socket.h> 
 #include <sys/types.h>
 #include <arpa/inet.h>
 
-Proxy::Proxy()
+namespace
+{
+	class Accept : public IReadyRead::ICallback
+	{
+	public:
+		Accept(Proxy& proxy)
+			: _proxy(proxy)
+		{}
+
+		int operator()(int fd)
+		{
+			return _proxy.accept(fd);
+		}
+	protected:
+		Proxy& _proxy;
+	};
+
+	class Copy : public IReadyRead::ICallback
+	{
+	public:
+		Copy(Proxy& proxy, int to)
+			: _proxy(proxy)
+			, _to(to)
+		{}
+
+		~Copy()
+		{
+			_proxy.close(_to);
+		}
+
+		int operator()(int fd)
+		{
+			return _proxy.copy(fd, _to);
+		}
+	protected:
+		Proxy& _proxy;
+		int _to;
+	};
+}
+
+Proxy::Proxy(IReadyRead& readyRead)
+	: _readyRead(readyRead)
+	, _proxy(*new struct sockaddr_in)
 {
 }
 
-Proxy::~Proxy() {
+Proxy::~Proxy()
+{
 	shutdown();
+	delete &_proxy;
 }
 
-void Proxy::shutdown() {
-	close();
+void Proxy::shutdown()
+{
+	reset();
 
-	::epoll_ctl(_waiter, EPOLL_CTL_DEL, _server, NULL);
+	_readyRead.remove(_server);
 	::close(_server);
-
-	::close(_waiter);
 }
 
-void Proxy::address(const std::string& address, int port) {
+void Proxy::address(const std::string& address, int port)
+{
 	::inet_aton(address.c_str(), &_proxy.sin_addr);
 	_proxy.sin_family = AF_INET; 
 	_proxy.sin_port = htons(port); 
 }
 
-void Proxy::close() {
-	std::map<int,int>::const_iterator it;
-	for(it = _connections.begin(); it != _connections.end(); ++it) {
-		disconnect(it->first);
+void Proxy::reset()
+{
+	std::set<int>::const_iterator it;
+	for(it = _sockets.begin(); it != _sockets.end(); ++it) {
+		close(*it);
 	}
 }
 
-bool Proxy::listen(int port) {
-	_waiter = ::epoll_create(1);
-
+bool Proxy::listen(int port)
+{
 	struct sockaddr_in addr = { 0 };
 	_server = ::socket(AF_INET, SOCK_STREAM, 0);
 
@@ -64,86 +108,65 @@ bool Proxy::listen(int port) {
 		return false;
 	}
 
-	wait_on(_server);
+	_readyRead.add(_server, new Accept(*this));
 
 	std::cout << "Listending on port " << port << std::endl;
 
 	return true;
 }
 
-bool Proxy::wait() {
-	struct epoll_event ev = { 0 };
+int Proxy::accept(int fd)
+{
+	struct sockaddr_in peer;
+	socklen_t len = sizeof(peer);
 
-	::epoll_wait(_waiter, &ev, 1, -1);
-
-	if(ev.data.fd == _server) {
-		struct sockaddr_in client;
-		socklen_t len = sizeof(client);
-
-		int sock = ::accept(ev.data.fd, (struct sockaddr*)&client, &len);
-		if(sock == -1) {
-			return false;
-		}
-
-		std::cout << "connection from " << inet_ntoa(client.sin_addr) << std::endl;
-
-		connect(sock);
-	} else {
-		std::map<int,int>::const_iterator it = _connections.find(ev.data.fd);
-		if(it != _connections.end()) {
-			char buf[1024];
-			ssize_t bytes = ::recv(it->first, buf, sizeof(buf), MSG_DONTWAIT);
-
-			if(bytes == 0) {
-				std::cout << "closing " << it->first << ", " << it->second << std::endl;
-				disconnect(it->first);
-				disconnect(it->second);
-			} else if(bytes > 0) {
-				ssize_t sent = ::send(it->second, buf, bytes, 0);
-			}
-		}
+	int client = ::accept(fd, (struct sockaddr*)&peer, &len);
+	if(client == -1) {
+		return -1;
 	}
-	return true;
-}
-
-bool Proxy::connect(int client) {
 
 	int sock = ::socket(AF_INET, SOCK_STREAM, 0);
 	if(sock == -1) {
 		::close(client);
-		return false;
+		return -1;
 	}
 
 	if(::connect(sock, (struct sockaddr*)&_proxy, sizeof(_proxy)) != 0) {
 		std::cout << "connect error " << errno << std::endl;
 		::close(client);
 		::close(sock);
-		return false;
+		return -1;
 	}
 
-	_connections[client] = sock;
-	_connections[sock] = client;
+	_readyRead.add(client, new Copy(*this, sock));
+	_readyRead.add(sock, new Copy(*this, client));
 
-	wait_on(client);
-	wait_on(sock);
+	_sockets.insert(client);
+	_sockets.insert(sock);
 
-	return true;
+	return 0;
 }
 
-void Proxy::wait_on(int fd) {
-	struct epoll_event ev = { 0 };
-	ev.data.fd = fd;
-	ev.events = EPOLLIN|EPOLLPRI;
+int Proxy::copy(int from, int to)
+{
+	char buf[1024];
+	ssize_t bytes = ::recv(from, buf, sizeof(buf), MSG_DONTWAIT);
 
-	errno = 0;
-	if(::epoll_ctl(_waiter, EPOLL_CTL_ADD, fd, &ev) != 0 && errno == EEXIST) {
-		::epoll_ctl(_waiter, EPOLL_CTL_MOD, fd, &ev);
+	if(bytes == 0) {
+		_readyRead.remove(from);
+		_readyRead.remove(to);
+	} else if(bytes > 0) {
+		ssize_t sent = ::send(to, buf, bytes, 0);
+		if(sent != bytes) {
+			return -1;
+		}
 	}
+
+	return 0;
 }
 
-void Proxy::disconnect(int fd) {
-	::epoll_ctl(_waiter, EPOLL_CTL_DEL, fd, NULL);
+void Proxy::close(int fd)
+{
 	::close(fd);
-	_connections.erase(fd);
+	_sockets.erase(fd);
 }
-

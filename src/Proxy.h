@@ -1,11 +1,12 @@
 #include <string>
-#include <map>
+#include <set>
 
-#include <netdb.h> 
+class IReadyRead;
+struct sockaddr_in;
 
 class Proxy {
 public:
-	Proxy();
+	Proxy(IReadyRead& readyRead);
 
 	virtual ~Proxy();
 
@@ -13,21 +14,16 @@ public:
 	bool listen(int port);
 
 	void shutdown();
-	void close();
+	void reset();
 
-	bool wait();
-
-protected:
-	bool connect(int client);
-
-	void wait_on(int fd);
-
-	void disconnect(int fd);
+	int accept(int client);
+	int copy(int from, int to);
+	void close(int fd);
 
 protected:
+	IReadyRead& _readyRead;
 	int _server;
-	int _waiter;
-	struct sockaddr_in _proxy;
-	std::map<int,int> _connections;
+	struct sockaddr_in& _proxy;
+	std::set<int> _sockets;
 };
 
