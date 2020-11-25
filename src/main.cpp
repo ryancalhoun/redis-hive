@@ -1,13 +1,30 @@
+#include "Controller.h"
 #include "Proxy.h"
 #include "ReadyRead.h"
 
-int main()
+#include "LocalhostCandidateList.h"
+
+#include <iostream>
+
+int main(int argc, const char* argv[])
 {
 	ReadyRead readyRead;
 	Proxy proxy(readyRead);
+	LocalhostCandidateList candidates;
 
-	proxy.address("127.0.0.1", 6379);
-	proxy.listen(5000);
+	Controller controller(proxy, readyRead, candidates);
 
-	readyRead.run();
+	if(argc < 3) {
+		std::cout << "usage " << argv[0] << " PROXY CONTROLLER [PEER...]" << std::endl;
+		exit(0);
+	}
+
+	proxy.listen(atoi(argv[1]));
+	controller.listen(atoi(argv[2]));
+
+	for(int i = 3; i < argc; ++i) {
+		candidates.add(atoi(argv[i]));
+	}
+
+	//readyRead.run();
 }

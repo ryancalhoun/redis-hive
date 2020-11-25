@@ -107,7 +107,7 @@ bool Proxy::listen(int port)
 
 	_readyRead.add(_server, new Accept(*this));
 
-	std::cout << "Listending on port " << port << std::endl;
+	std::cout << "Proxy listending on port " << port << std::endl;
 
 	return true;
 }

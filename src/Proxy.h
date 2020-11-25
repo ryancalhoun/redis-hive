@@ -1,9 +1,12 @@
-#include <string>
+#pragma once
+
+#include "IProxy.h"
 
 class IReadyRead;
 struct sockaddr_in;
 
-class Proxy {
+class Proxy : public IProxy
+{
 public:
 	Proxy(IReadyRead& readyRead);
 
