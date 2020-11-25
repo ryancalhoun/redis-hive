@@ -100,8 +100,11 @@ bool Proxy::listen(int port)
 	addr.sin_addr.s_addr = ::htonl(INADDR_ANY); 
 	addr.sin_port = htons(port); 
 
+	int on = 1;
+    ::setsockopt(_server, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+
 	if(::bind(_server, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-		std::cout << "bind error " << errno << std::endl;
+		std::cout << "bind error on " << port << " (" << errno << ")" << std::endl;
 		return false;
 	}
 	if(::listen(_server, 5) != 0) {

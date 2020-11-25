@@ -2,18 +2,36 @@
 #include <cstdio>
 #include <cstring>
 
-void LocalhostCandidateList::add(int port)
+namespace
 {
-	char buffer [50] = { 0 };
+	std::string addr(int port)
+	{
+		char buffer [50] = { 0 };
 
-	::strcpy(buffer, "127.0.0.1:");
-    ::snprintf(buffer + 10, sizeof(buffer) - 10, "%d", port);
+		::strcpy(buffer, "127.0.0.1:");
+		::snprintf(buffer + 10, sizeof(buffer) - 10, "%d", port);
 
-	_list.push_back(buffer);
+		return buffer;
+	}
 }
 
-void LocalhostCandidateList::getCandidates(std::vector<std::string>& list) const
+LocalhostCandidateList::LocalhostCandidateList(int self)
+	: _self(addr(self))
 {
-	list = _list;
+}
+
+void LocalhostCandidateList::add(int port)
+{
+	_list.push_back(addr(port));
+}
+
+std::string LocalhostCandidateList::getSelf() const
+{
+	return _self;
+}
+
+std::vector<std::string> LocalhostCandidateList::getCandidates() const
+{
+	return _list;
 }
 

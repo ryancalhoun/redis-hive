@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+#include <map>
 
 class ICandidateList;
 class IProxy;
@@ -15,11 +17,40 @@ public:
 	int read(int fd);
 	int ping(int fd);
 
+	enum State
+	{
+		Alone,
+		Proposing,
+		Leading,
+		Following,
+	};
+protected:
+	class Packet;
+
+	void follow(const std::string& leader);
+	void propose();
+	void lead();
+
+	int connectTo(const std::string& peer) const;
+	bool sendTo(int fd, const std::string& data);
+	void packetFor(const std::string& reason, Packet& packet) const;
+
+	void purge();
+
 protected:
 	IProxy& _proxy;
 	IEventBus& _eventBus;
 	const ICandidateList& _candidates;
+	int _interval;
 
 	int _server;
+
+	State _state;
+	unsigned long long _since;
+
+	std::string _self;
+	std::string _leader;
+
+	std::map<std::string,unsigned long long> _members;
 };
 

@@ -7,6 +7,7 @@ class ICandidateList
 {
 public:
 	virtual ~ICandidateList() {}
-	virtual void getCandidates(std::vector<std::string>& list) const = 0;
+	virtual std::string getSelf() const = 0;
+	virtual std::vector<std::string> getCandidates() const = 0;
 };
 

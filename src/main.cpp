@@ -8,16 +8,16 @@
 
 int main(int argc, const char* argv[])
 {
-	EventBus eventBus;
-	Proxy proxy(eventBus);
-	LocalhostCandidateList candidates;
-
-	Controller controller(proxy, eventBus, candidates);
-
 	if(argc < 3) {
 		std::cout << "usage " << argv[0] << " PROXY CONTROLLER [PEER...]" << std::endl;
 		exit(0);
 	}
+
+	EventBus eventBus;
+	Proxy proxy(eventBus);
+	LocalhostCandidateList candidates(atoi(argv[2]));
+
+	Controller controller(proxy, eventBus, candidates);
 
 	proxy.listen(atoi(argv[1]));
 	controller.listen(atoi(argv[2]));

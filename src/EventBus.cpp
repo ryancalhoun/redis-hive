@@ -1,7 +1,7 @@
 #include "EventBus.h"
+#include "Time.h"
 
 #include <sys/epoll.h>
-#include <sys/time.h>
 #include <unistd.h>
 #include <cstdlib> 
 #include <errno.h>
@@ -15,9 +15,9 @@ EventBus::EventBus()
 EventBus::~EventBus()
 {
 	std::map<int,Info>::const_iterator it;
-	for(it = _callback.begin(); it != _callback.end(); ++it) {
+	for(it = _callback.begin(); it != _callback.end(); ) {
 		delete it->second.cb;
-		_callback.erase(it);
+		_callback.erase(it++);
 	}
 	::close(_waiter);
 }
@@ -71,7 +71,7 @@ void EventBus::run()
 
 void EventBus::scheduled()
 {
-	unsigned long long now = this->now();
+	unsigned long long now = Time().now();
 	std::vector<Schedule>::iterator it;
 	for(it = _schedule.begin(); it != _schedule.end(); ++it) {
 		if(it->last == 0 || (int)(now - it->last) >= it->millis) {
@@ -98,7 +98,7 @@ void EventBus::next()
 int EventBus::timeout() const
 {
 	int min = -1;
-	unsigned long long now = this->now();
+	unsigned long long now = Time().now();
 	std::vector<Schedule>::const_iterator it;
 	for(it = _schedule.begin(); it != _schedule.end(); ++it) {
 		int next = it->millis;
@@ -113,12 +113,5 @@ int EventBus::timeout() const
 		}
 	}
 	return min;
-}
-
-unsigned long long EventBus::now() const
-{
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	return ((unsigned long long)tv.tv_sec * 1000) + tv.tv_usec / 1000;
 }
 
