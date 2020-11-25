@@ -1,7 +1,7 @@
 #include "Controller.h"
 #include "ICandidateList.h"
 #include "IProxy.h"
-#include "IReadyRead.h"
+#include "IEventBus.h"
 
 #include <cstdio> 
 #include <cstdlib> 
@@ -17,7 +17,7 @@
 
 namespace
 {
-	class CB : public IReadyRead::ICallback
+	class CB : public IEventBus::ICallback
 	{
 	public:
 		CB(Controller& controller, int (Controller::*f)(int))
@@ -35,9 +35,9 @@ namespace
 	};
 }
 
-Controller::Controller(IProxy& proxy, IReadyRead& readyRead, const ICandidateList& candidates)
+Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates)
 	: _proxy(proxy)
-	, _readyRead(readyRead)
+	, _eventBus(eventBus)
 	, _candidates(candidates)
 {}
 
@@ -61,7 +61,7 @@ bool Controller::listen(int port)
 		return false;
 	}
 
-	_readyRead.add(_server, new CB(*this, &Controller::accept));
+	_eventBus.add(_server, new CB(*this, &Controller::accept));
 
 	std::cout << "Controller listending on port " << port << std::endl;
 
@@ -78,7 +78,7 @@ int Controller::accept(int fd)
 		return -1;
 	}
 
-	_readyRead.add(client, new CB(*this, &Controller::read));
+	_eventBus.add(client, new CB(*this, &Controller::read));
 	return 0;
 }
 

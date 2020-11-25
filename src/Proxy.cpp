@@ -1,5 +1,5 @@
 #include "Proxy.h"
-#include "IReadyRead.h"
+#include "IEventBus.h"
 
 #include <cstdio> 
 #include <cstdlib> 
@@ -15,7 +15,7 @@
 
 namespace
 {
-	class Accept : public IReadyRead::ICallback
+	class Accept : public IEventBus::ICallback
 	{
 	public:
 		Accept(Proxy& proxy)
@@ -30,7 +30,7 @@ namespace
 		Proxy& _proxy;
 	};
 
-	class Copy : public IReadyRead::ICallback
+	class Copy : public IEventBus::ICallback
 	{
 	public:
 		Copy(Proxy& proxy, int to)
@@ -53,8 +53,8 @@ namespace
 	};
 }
 
-Proxy::Proxy(IReadyRead& readyRead)
-	: _readyRead(readyRead)
+Proxy::Proxy(IEventBus& eventBus)
+	: _eventBus(eventBus)
 	, _proxy(*new struct sockaddr_in)
 {
 }
@@ -69,7 +69,7 @@ void Proxy::shutdown()
 {
 	reset();
 
-	_readyRead.remove(_server);
+	_eventBus.remove(_server);
 	::close(_server);
 }
 
@@ -82,7 +82,7 @@ void Proxy::address(const std::string& address, int port)
 
 void Proxy::reset()
 {
-	_readyRead.removeAll(IReadyRead::Volatile);
+	_eventBus.removeAll(IEventBus::Volatile);
 }
 
 bool Proxy::listen(int port)
@@ -105,7 +105,7 @@ bool Proxy::listen(int port)
 		return false;
 	}
 
-	_readyRead.add(_server, new Accept(*this));
+	_eventBus.add(_server, new Accept(*this));
 
 	std::cout << "Proxy listending on port " << port << std::endl;
 
@@ -135,8 +135,8 @@ int Proxy::accept(int fd)
 		return -1;
 	}
 
-	_readyRead.add(client, new Copy(*this, sock), IReadyRead::Volatile);
-	_readyRead.add(sock, new Copy(*this, client), IReadyRead::Volatile);
+	_eventBus.add(client, new Copy(*this, sock), IEventBus::Volatile);
+	_eventBus.add(sock, new Copy(*this, client), IEventBus::Volatile);
 
 	return 0;
 }
@@ -147,8 +147,8 @@ int Proxy::copy(int from, int to)
 	ssize_t bytes = ::recv(from, buf, sizeof(buf), MSG_DONTWAIT);
 
 	if(bytes == 0) {
-		_readyRead.remove(from);
-		_readyRead.remove(to);
+		_eventBus.remove(from);
+		_eventBus.remove(to);
 	} else if(bytes > 0) {
 		ssize_t sent = ::send(to, buf, bytes, 0);
 		if(sent != bytes) {

@@ -2,12 +2,12 @@
 
 class ICandidateList;
 class IProxy;
-class IReadyRead;
+class IEventBus;
 
 class Controller
 {
 public:
-	Controller(IProxy& proxy, IReadyRead& readyRead, const ICandidateList& candidates);
+	Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates);
 
 	bool listen(int port);
 
@@ -16,7 +16,7 @@ public:
 
 protected:
 	IProxy& _proxy;
-	IReadyRead& _readyRead;
+	IEventBus& _eventBus;
 	const ICandidateList& _candidates;
 
 	int _server;

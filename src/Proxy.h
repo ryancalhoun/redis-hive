@@ -2,13 +2,13 @@
 
 #include "IProxy.h"
 
-class IReadyRead;
+class IEventBus;
 struct sockaddr_in;
 
 class Proxy : public IProxy
 {
 public:
-	Proxy(IReadyRead& readyRead);
+	Proxy(IEventBus& eventBus);
 
 	virtual ~Proxy();
 
@@ -22,7 +22,7 @@ public:
 	int copy(int from, int to);
 
 protected:
-	IReadyRead& _readyRead;
+	IEventBus& _eventBus;
 	int _server;
 	struct sockaddr_in& _proxy;
 };

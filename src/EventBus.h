@@ -1,13 +1,13 @@
 #pragma once
 
-#include "IReadyRead.h"
+#include "IEventBus.h"
 #include <map>
 
-class ReadyRead : public IReadyRead
+class EventBus : public IEventBus
 {
 public:
-	ReadyRead();
-	virtual ~ReadyRead();
+	EventBus();
+	virtual ~EventBus();
 
 	void add(int fd, ICallback* cb, Type type);
 	void removeAll(Type type);

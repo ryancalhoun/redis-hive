@@ -1,6 +1,6 @@
 #pragma once
 
-class IReadyRead
+class IEventBus
 {
 public:
 	enum Error
@@ -21,7 +21,7 @@ public:
 		virtual int operator()(int fd) = 0;
 	};
 
-	virtual ~IReadyRead() {}
+	virtual ~IEventBus() {}
 
 	virtual void add(int fd, ICallback* callback, Type type = Stable) = 0;
 	virtual void removeAll(Type type) = 0;

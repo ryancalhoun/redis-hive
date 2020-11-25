@@ -1,4 +1,4 @@
-#include "ReadyRead.h"
+#include "EventBus.h"
 
 #include <sys/epoll.h>
 #include <unistd.h>
@@ -6,12 +6,12 @@
 #include <errno.h>
 #include <iostream>
 
-ReadyRead::ReadyRead()
+EventBus::EventBus()
 	: _waiter(::epoll_create(1))
 {
 }
 
-ReadyRead::~ReadyRead()
+EventBus::~EventBus()
 {
 	std::map<int,Info>::const_iterator it;
 	for(it = _callback.begin(); it != _callback.end(); ++it) {
@@ -21,7 +21,7 @@ ReadyRead::~ReadyRead()
 	::close(_waiter);
 }
 
-void ReadyRead::add(int fd, ICallback* callback, Type type)
+void EventBus::add(int fd, ICallback* callback, Type type)
 {
 	struct epoll_event ev = { 0 };
 	ev.data.fd = fd;
@@ -35,7 +35,7 @@ void ReadyRead::add(int fd, ICallback* callback, Type type)
 	_callback[fd] = info;
 }
 
-void ReadyRead::removeAll(Type type)
+void EventBus::removeAll(Type type)
 {
 	std::map<int,Info>::const_iterator it;
 	for(it = _callback.begin(); it != _callback.end(); ++it) {
@@ -45,7 +45,7 @@ void ReadyRead::removeAll(Type type)
 	}
 }
 
-void ReadyRead::remove(int fd)
+void EventBus::remove(int fd)
 {
 	::epoll_ctl(_waiter, EPOLL_CTL_DEL, fd, NULL);
 	std::map<int,Info>::const_iterator it = _callback.find(fd);
@@ -55,14 +55,14 @@ void ReadyRead::remove(int fd)
 	}
 }
 
-void ReadyRead::run()
+void EventBus::run()
 {
 	for(;;) {
 		next();
 	}
 }
 
-int ReadyRead::next()
+int EventBus::next()
 {
 	struct epoll_event ev = { 0 };
 

@@ -1,6 +1,6 @@
 #include "Controller.h"
 #include "Proxy.h"
-#include "ReadyRead.h"
+#include "EventBus.h"
 
 #include "LocalhostCandidateList.h"
 
@@ -8,11 +8,11 @@
 
 int main(int argc, const char* argv[])
 {
-	ReadyRead readyRead;
-	Proxy proxy(readyRead);
+	EventBus eventBus;
+	Proxy proxy(eventBus);
 	LocalhostCandidateList candidates;
 
-	Controller controller(proxy, readyRead, candidates);
+	Controller controller(proxy, eventBus, candidates);
 
 	if(argc < 3) {
 		std::cout << "usage " << argv[0] << " PROXY CONTROLLER [PEER...]" << std::endl;
@@ -26,5 +26,5 @@ int main(int argc, const char* argv[])
 		candidates.add(atoi(argv[i]));
 	}
 
-	//readyRead.run();
+	//eventBus.run();
 }
