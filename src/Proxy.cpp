@@ -101,11 +101,17 @@ bool Proxy::listen(int port)
 	addr.sin_port = htons(port); 
 
 	if(::bind(_server, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
+		std::cout << "bind error " << errno << std::endl;
 		return false;
 	}
 	if(::listen(_server, 5) != 0) {
 		return false;
 	}
+
+	struct linger l;
+	l.l_onoff = 1;
+	l.l_linger = 1;
+	::setsockopt(_server, SOL_SOCKET, SO_LINGER, &l, sizeof(struct linger));
 
 	_eventBus.add(_server, new Accept(*this));
 

@@ -46,7 +46,9 @@ Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList&
 	: _proxy(proxy)
 	, _eventBus(eventBus)
 	, _candidates(candidates)
-{}
+{
+	proxy.address("127.0.0.1", 6379);
+}
 
 bool Controller::listen(int port)
 {
@@ -97,7 +99,6 @@ int Controller::read(int fd)
 
 int Controller::ping(int fd)
 {
-	std::cout << "Ping " << fd << std::endl;
 	return 0;
 }
 

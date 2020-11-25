@@ -74,7 +74,7 @@ void EventBus::scheduled()
 	unsigned long long now = this->now();
 	std::vector<Schedule>::iterator it;
 	for(it = _schedule.begin(); it != _schedule.end(); ++it) {
-		if(it->last == 0 || (int)(now - it->last) < it->millis + 1) {
+		if(it->last == 0 || (int)(now - it->last) >= it->millis) {
 			(*it->cb)();
 			it->last = now;
 		}
@@ -100,13 +100,10 @@ int EventBus::timeout() const
 	int min = -1;
 	unsigned long long now = this->now();
 	std::vector<Schedule>::const_iterator it;
-	std::cout << "now=" << now << std::endl;
 	for(it = _schedule.begin(); it != _schedule.end(); ++it) {
-		std::cout << "m=" << it->millis << ", l=" << it->last << std::endl;
 		int next = it->millis;
 		if(it->last != 0) {
 			int elapsed = (int)(now - it->last);
-			std::cout << "e=" << elapsed << ", n=" << next << std::endl;
 			if(elapsed < next) {
 				next -= elapsed;
 			}
@@ -115,7 +112,6 @@ int EventBus::timeout() const
 			min = next;
 		}
 	}
-	std::cout << "min timeout " << min << std::endl;
 	return min;
 }
 
