@@ -20,18 +20,25 @@ namespace
 	class CB : public IEventBus::ICallback
 	{
 	public:
-		CB(Controller& controller, int (Controller::*f)(int))
+		CB(Controller& controller, int (Controller::*f)(int), int fd)
 			: _controller(controller)
 			, _f(f)
+			, _fd(fd)
 		{}
 
-		int operator()(int fd)
+		~CB()
 		{
-			return (_controller.*_f)(fd);
+			::close(_fd);
+		}
+
+		int operator()()
+		{
+			return (_controller.*_f)(_fd);
 		}
 	protected:
 		Controller& _controller;
 		int (Controller::*_f)(int);
+		int _fd;
 	};
 }
 
@@ -61,7 +68,8 @@ bool Controller::listen(int port)
 		return false;
 	}
 
-	_eventBus.add(_server, new CB(*this, &Controller::accept));
+	_eventBus.add(_server, new CB(*this, &Controller::accept, _server));
+	_eventBus.every(5000, new CB(*this, &Controller::ping, 0));
 
 	std::cout << "Controller listending on port " << port << std::endl;
 
@@ -78,7 +86,7 @@ int Controller::accept(int fd)
 		return -1;
 	}
 
-	_eventBus.add(client, new CB(*this, &Controller::read));
+	_eventBus.add(client, new CB(*this, &Controller::read, client));
 	return 0;
 }
 
@@ -87,4 +95,9 @@ int Controller::read(int fd)
 	return 0;
 }
 
+int Controller::ping(int fd)
+{
+	std::cout << "Ping " << fd << std::endl;
+	return 0;
+}
 

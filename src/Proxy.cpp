@@ -22,9 +22,9 @@ namespace
 			: _proxy(proxy)
 		{}
 
-		int operator()(int fd)
+		int operator()()
 		{
-			return _proxy.accept(fd);
+			return _proxy.accept();
 		}
 	protected:
 		Proxy& _proxy;
@@ -33,22 +33,24 @@ namespace
 	class Copy : public IEventBus::ICallback
 	{
 	public:
-		Copy(Proxy& proxy, int to)
+		Copy(Proxy& proxy, int from, int to)
 			: _proxy(proxy)
+			, _from(from)
 			, _to(to)
 		{}
 
 		~Copy()
 		{
-			::close(_to);
+			::close(_from);
 		}
 
-		int operator()(int fd)
+		int operator()()
 		{
-			return _proxy.copy(fd, _to);
+			return _proxy.copy(_from, _to);
 		}
 	protected:
 		Proxy& _proxy;
+		int _from;
 		int _to;
 	};
 }
@@ -112,12 +114,12 @@ bool Proxy::listen(int port)
 	return true;
 }
 
-int Proxy::accept(int fd)
+int Proxy::accept()
 {
 	struct sockaddr_in peer;
 	socklen_t len = sizeof(peer);
 
-	int client = ::accept(fd, (struct sockaddr*)&peer, &len);
+	int client = ::accept(_server, (struct sockaddr*)&peer, &len);
 	if(client == -1) {
 		return -1;
 	}
@@ -135,8 +137,8 @@ int Proxy::accept(int fd)
 		return -1;
 	}
 
-	_eventBus.add(client, new Copy(*this, sock), IEventBus::Volatile);
-	_eventBus.add(sock, new Copy(*this, client), IEventBus::Volatile);
+	_eventBus.add(client, new Copy(*this, client, sock), IEventBus::Volatile);
+	_eventBus.add(sock, new Copy(*this, sock, client), IEventBus::Volatile);
 
 	return 0;
 }

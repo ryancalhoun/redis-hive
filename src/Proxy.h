@@ -18,7 +18,7 @@ public:
 	void shutdown();
 	void reset();
 
-	int accept(int client);
+	int accept();
 	int copy(int from, int to);
 
 protected:

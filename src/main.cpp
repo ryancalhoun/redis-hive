@@ -26,5 +26,5 @@ int main(int argc, const char* argv[])
 		candidates.add(atoi(argv[i]));
 	}
 
-	//eventBus.run();
+	eventBus.run();
 }

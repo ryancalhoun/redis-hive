@@ -1,6 +1,7 @@
 #include "EventBus.h"
 
 #include <sys/epoll.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <cstdlib> 
 #include <errno.h>
@@ -35,6 +36,12 @@ void EventBus::add(int fd, ICallback* callback, Type type)
 	_callback[fd] = info;
 }
 
+void EventBus::every(int millis, ICallback* callback)
+{
+	Schedule schedule = { callback, millis, 0 };
+	_schedule.push_back(schedule);
+}
+
 void EventBus::removeAll(Type type)
 {
 	std::map<int,Info>::const_iterator it;
@@ -62,16 +69,60 @@ void EventBus::run()
 	}
 }
 
-int EventBus::next()
+void EventBus::scheduled()
+{
+	unsigned long long now = this->now();
+	std::vector<Schedule>::iterator it;
+	for(it = _schedule.begin(); it != _schedule.end(); ++it) {
+		if(it->last == 0 || (int)(now - it->last) < it->millis + 1) {
+			(*it->cb)();
+			it->last = now;
+		}
+	}
+}
+
+void EventBus::next()
 {
 	struct epoll_event ev = { 0 };
 
-	if(::epoll_wait(_waiter, &ev, 1, -1) != -1) {
+	if(::epoll_wait(_waiter, &ev, 1, timeout()) != -1) {
 		std::map<int,Info>::const_iterator it = _callback.find(ev.data.fd);
 		if(it != _callback.end()) {
-			return (*it->second.cb)(it->first);
+			(*it->second.cb)();
 		}
 	}
-	return None;
+
+	scheduled();
+}
+
+int EventBus::timeout() const
+{
+	int min = -1;
+	unsigned long long now = this->now();
+	std::vector<Schedule>::const_iterator it;
+	std::cout << "now=" << now << std::endl;
+	for(it = _schedule.begin(); it != _schedule.end(); ++it) {
+		std::cout << "m=" << it->millis << ", l=" << it->last << std::endl;
+		int next = it->millis;
+		if(it->last != 0) {
+			int elapsed = (int)(now - it->last);
+			std::cout << "e=" << elapsed << ", n=" << next << std::endl;
+			if(elapsed < next) {
+				next -= elapsed;
+			}
+		}
+		if(min == -1 || next < min) {
+			min = next;
+		}
+	}
+	std::cout << "min timeout " << min << std::endl;
+	return min;
+}
+
+unsigned long long EventBus::now() const
+{
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	return ((unsigned long long)tv.tv_sec * 1000) + tv.tv_usec / 1000;
 }
 

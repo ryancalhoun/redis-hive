@@ -13,6 +13,7 @@ public:
 
 	int accept(int fd);
 	int read(int fd);
+	int ping(int fd);
 
 protected:
 	IProxy& _proxy;
