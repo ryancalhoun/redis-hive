@@ -55,8 +55,9 @@ namespace
 	};
 }
 
-Proxy::Proxy(IEventBus& eventBus)
+Proxy::Proxy(IEventBus& eventBus, int port)
 	: _eventBus(eventBus)
+	, _local(port)
 	, _proxy(*new struct sockaddr_in)
 {
 }
@@ -73,6 +74,11 @@ void Proxy::shutdown()
 
 	_eventBus.remove(_server);
 	::close(_server);
+}
+
+int Proxy::getLocalPort() const
+{
+	return _local;
 }
 
 void Proxy::address(const std::string& address, int port)
@@ -118,7 +124,7 @@ bool Proxy::listen(int port)
 
 	_eventBus.add(_server, new Accept(*this));
 
-	std::cout << "Proxy listending on port " << port << std::endl;
+	std::cout << "Proxy listening on port " << port << std::endl;
 
 	return true;
 }

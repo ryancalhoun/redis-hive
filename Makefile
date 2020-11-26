@@ -9,14 +9,17 @@ TARGETDIR   := bin
 SRCEXT      := cpp
 OBJEXT      := o
 
-CFLAGS      := -Wall -O3 -g
+CFLAGS      := -Wall -O3 -g -MMD
 LIB         := 
 INC         := -I$(INCDIR) -I/usr/local/include
 
 SOURCES     := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS     := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.$(OBJEXT)))
+DEP         := $(OBJECTS:%.o=%.d)
 
 all: $(TARGETDIR) $(BUILDDIR) $(TARGET)
+
+-include $(DEP)
 
 clean:
 	rm -rf $(BUILDDIR) $(TARGETDIR)

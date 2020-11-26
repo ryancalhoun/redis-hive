@@ -76,6 +76,10 @@ public:
 	{
 		set(c, std::string(1, v));
 	}
+	void set(char c, int v)
+	{
+		set(c, (unsigned long long)v);
+	}
 	void set(char c, unsigned long long v)
 	{
 		char val[50] = {0};
@@ -118,7 +122,6 @@ Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList&
 	, _self(candidates.getSelf())
 	
 {
-	proxy.address("127.0.0.1", 6379);
 }
 
 bool Controller::listen(int port)
@@ -152,7 +155,7 @@ bool Controller::listen(int port)
 	_eventBus.add(_server, new CB(*this, &Controller::accept, _server));
 	_eventBus.every(_interval, new CB(*this, &Controller::ping, 0));
 
-	std::cout << "Controller listending on port " << port << std::endl;
+	std::cout << "Controller listening on port " << port << std::endl;
 
 	return true;
 }
@@ -198,6 +201,9 @@ int Controller::read(int fd)
 		} else if(_state == Following) {
 			if(_leader == peerFollowing) {
 				if(received.gets('s') == "L") {
+					int port = received.getu('r');
+					_proxy.address("127.0.0.1", port);
+
 					std::string peerMembers = received.gets('m');
 					size_t begin = 0, end = 0;
 					for(; end != std::string::npos; begin = end + 1) {
@@ -253,8 +259,10 @@ int Controller::ping(int)
 		size_t sent = 0;
 		std::vector<std::string>::const_iterator it;
 		for(it = candidates.begin(); it != candidates.end(); ++it) {
-			if(sendTo(connectTo(*it), packet.serialize())) {
-				++sent;
+			if(*it != _self) {
+				if(sendTo(connectTo(*it), packet.serialize())) {
+					++sent;
+				}
 			}
 		}
 
@@ -361,6 +369,7 @@ void Controller::packetFor(const std::string& reason, Packet& packet) const
 	packet.set('t', _since);
 	packet.set('a', _self);
 	packet.set('f', _leader);
+	packet.set('r', _proxy.getLocalPort());
 
 	if(_state == Leading) {
 		std::string members;
