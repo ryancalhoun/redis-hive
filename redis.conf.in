@@ -1,0 +1,7 @@
+bind 127.0.0.1 ::1
+daemonize yes
+port {{PORT}}
+pidfile redis-{{PORT}}.pid
+loglevel notice
+logfile redis-{{PORT}}.log
+dir data/redis-{{PORT}}
