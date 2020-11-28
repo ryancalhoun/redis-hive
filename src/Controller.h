@@ -36,6 +36,7 @@ protected:
 	void packetFor(const std::string& reason, Packet& packet) const;
 
 	void purge();
+	void election();
 
 protected:
 	IProxy& _proxy;
@@ -52,5 +53,6 @@ protected:
 	std::string _leader;
 
 	std::map<std::string,unsigned long long> _members;
+	std::map<std::string,unsigned long long> _election;
 };
 

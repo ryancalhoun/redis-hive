@@ -186,11 +186,17 @@ int Controller::read(int fd)
 		Packet received(buf);
 		std::string peer = received.gets('a');
 		std::string peerFollowing = received.gets('f');
+		std::string peerState = received.gets('s');
 		unsigned long long peerSince = received.getu('t');
 
 		unsigned long long now = Time().now();
 
 		_members[peer] = now;
+		if(peerState == "P") {
+			_election[peer] = peerSince;
+		} else {
+			_election.erase(peer);
+		}
 
 		if(_state == Alone || _state == Proposing) {
 			if(peerFollowing.size() == 0) {
@@ -200,9 +206,10 @@ int Controller::read(int fd)
 			}
 		} else if(_state == Following) {
 			if(_leader == peerFollowing) {
-				if(received.gets('s') == "L") {
+				if(peerState == "L") {
 					int port = received.getu('r');
-					_proxy.address("127.0.0.1", port);
+					size_t c = _leader.find(':');
+					_proxy.address(_leader.substr(0, c), port);
 
 					std::string peerMembers = received.gets('m');
 					size_t begin = 0, end = 0;
@@ -222,7 +229,7 @@ int Controller::read(int fd)
 			}
 
 		} else if(_state == Leading) {
-			if(received.gets('s') == "L" && _self != peer) {
+			if(peerState == "L" && _self != peer) {
 				// accept the older
 				if(_since > peerSince) {
 					follow(peer);
@@ -272,17 +279,7 @@ int Controller::ping(int)
 
 		if(_state == Proposing) {
 			if((int)(now - _since) > _interval*3) {
-				if(_members.size() == 0 || _self.compare(_members.begin()->first) <= 0) {
-					lead();
-					packetFor("ping", packet);
-
-					std::map<std::string,unsigned long long>::const_iterator it;
-					for(it = _members.begin(); it != _members.end(); ++it) {
-						if(it->first != _self) {
-							sendTo(connectTo(it->first), packet.serialize());
-						}
-					}
-				}
+				election();
 			}
 		}
 
@@ -304,6 +301,7 @@ void Controller::follow(const std::string& leader)
 
 	_leader = leader;
 	_state = Following;
+	_election.clear();
 }
 
 void Controller::propose()
@@ -314,6 +312,7 @@ void Controller::propose()
 	}
 	_leader = "";
 	_state = Proposing;
+	_election[_self] = _since;
 }
 
 void Controller::lead()
@@ -324,6 +323,7 @@ void Controller::lead()
 	}
 	_leader = _self;
 	_state = Leading;
+	_election.clear();
 }
 
 int Controller::connectTo(const std::string& peer) const
@@ -394,6 +394,34 @@ void Controller::purge()
 			_members.erase(it++);
 		} else {
 			++it;
+		}
+	}
+}
+
+void Controller::election()
+{
+	std::map<std::string,unsigned long long>::const_iterator winner = _election.begin();
+	std::map<std::string,unsigned long long>::const_iterator it;
+	std::cout << " elect" << std::endl;
+	for(it = _election.begin(); it != _election.end(); ++it) {
+		std::cout << " e:" << it->first << " s:" << it->second << std::endl;
+		if(it->second < winner->second - 10) {
+			winner = it;
+		}
+	}
+	std::cout << " winner " << winner->first << std::endl;
+
+	if(winner == _election.end() || winner->first == _self) {
+		lead();
+
+		Packet packet;
+		packetFor("ping", packet);
+
+		std::map<std::string,unsigned long long>::const_iterator it;
+		for(it = _members.begin(); it != _members.end(); ++it) {
+			if(it->first != _self) {
+				sendTo(connectTo(it->first), packet.serialize());
+			}
 		}
 	}
 }

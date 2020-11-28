@@ -15,7 +15,7 @@ int main(int argc, const char* argv[])
 
 	EventBus eventBus;
 	Proxy proxy(eventBus, atoi(argv[1]));
-	LocalhostCandidateList candidates(atoi(argv[2]));
+	LocalhostCandidateList candidates(atoi(argv[3]));
 
 	Controller controller(proxy, eventBus, candidates);
 

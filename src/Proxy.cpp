@@ -60,6 +60,7 @@ Proxy::Proxy(IEventBus& eventBus, int port)
 	, _local(port)
 	, _proxy(*new struct sockaddr_in)
 {
+	address("127.0.0.1", _local);
 }
 
 Proxy::~Proxy()
