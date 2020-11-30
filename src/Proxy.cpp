@@ -197,13 +197,9 @@ std::string Proxy::runCommand(const std::string& command)
 {
 	struct sockaddr_in redis;
 
-	std::cout << "running " << command << std::endl;
-
 	::inet_aton("127.0.0.1", &redis.sin_addr);
 	redis.sin_family = AF_INET; 
 	redis.sin_port = htons(_local); 
-
-	std::cout << _local << std::endl;
 
 	int sock = ::socket(AF_INET, SOCK_STREAM, 0);
 
@@ -211,18 +207,15 @@ std::string Proxy::runCommand(const std::string& command)
 		::close(sock);
 		return "connect error";
 	}
-	std::cout << "connected" << std::endl;
 
 	ssize_t sent = ::send(sock, command.c_str(), command.size(), 0);
 	if((size_t)sent != command.size()) {
 		::close(sock);
 		return "send error";
 	}
-	std::cout << "sent = " << sent << std::endl;
 
 	char buf[1024] = {0};
 	ssize_t bytes = ::recv(sock, buf, sizeof(buf), 0);
-	std::cout << "received " << bytes << std::endl;
 
 	::close(sock);
 	if(bytes > 0) {
