@@ -209,7 +209,7 @@ int Controller::read(int fd)
 				if(peerState == "L") {
 					int port = received.getu('r');
 					size_t c = _leader.find(':');
-					_proxy.address(_leader.substr(0, c), port);
+					_proxy.proxyToAddress(_leader.substr(0, c), port);
 
 					std::string peerMembers = received.gets('m');
 					size_t begin = 0, end = 0;
@@ -402,14 +402,11 @@ void Controller::election()
 {
 	std::map<std::string,unsigned long long>::const_iterator winner = _election.begin();
 	std::map<std::string,unsigned long long>::const_iterator it;
-	std::cout << " elect" << std::endl;
 	for(it = _election.begin(); it != _election.end(); ++it) {
-		std::cout << " e:" << it->first << " s:" << it->second << std::endl;
 		if(it->second < winner->second - 10) {
 			winner = it;
 		}
 	}
-	std::cout << " winner " << winner->first << std::endl;
 
 	if(winner == _election.end() || winner->first == _self) {
 		lead();

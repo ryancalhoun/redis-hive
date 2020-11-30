@@ -13,7 +13,8 @@ public:
 	virtual ~Proxy();
 
 	int getLocalPort() const;
-	void address(const std::string& address, int port);
+	void proxyToLocal();
+	void proxyToAddress(const std::string& address, int port);
 	bool listen(int port);
 
 	void shutdown();
@@ -21,6 +22,8 @@ public:
 
 	int accept();
 	int copy(int from, int to);
+
+	std::string runCommand(const std::string& command);
 
 protected:
 	IEventBus& _eventBus;

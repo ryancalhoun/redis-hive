@@ -60,7 +60,7 @@ Proxy::Proxy(IEventBus& eventBus, int port)
 	, _local(port)
 	, _proxy(*new struct sockaddr_in)
 {
-	address("127.0.0.1", _local);
+	proxyToLocal();
 }
 
 Proxy::~Proxy()
@@ -82,11 +82,27 @@ int Proxy::getLocalPort() const
 	return _local;
 }
 
-void Proxy::address(const std::string& address, int port)
+void Proxy::proxyToLocal()
 {
-	::inet_aton(address.c_str(), &_proxy.sin_addr);
+	::inet_aton("127.0.0.1", &_proxy.sin_addr);
 	_proxy.sin_family = AF_INET; 
-	_proxy.sin_port = htons(port); 
+	_proxy.sin_port = htons(_local); 
+
+	runCommand("REPLICAOF NO ONE\r\n");;
+}
+void Proxy::proxyToAddress(const std::string& address, int port)
+{
+	struct sockaddr_in proxy;
+	::inet_aton(address.c_str(), &proxy.sin_addr);
+	proxy.sin_family = AF_INET; 
+	proxy.sin_port = htons(port); 
+
+	if(::memcmp(&_proxy, &proxy, sizeof(_proxy)) != 0) {
+		_proxy = proxy;
+		char val[20] = {0};
+		::snprintf(val, sizeof(val), "%u", port);
+		runCommand("REPLICAOF " + address + " " + val + "\r\n");
+	}
 }
 
 void Proxy::reset()
@@ -175,5 +191,44 @@ int Proxy::copy(int from, int to)
 	}
 
 	return 0;
+}
+
+std::string Proxy::runCommand(const std::string& command)
+{
+	struct sockaddr_in redis;
+
+	std::cout << "running " << command << std::endl;
+
+	::inet_aton("127.0.0.1", &redis.sin_addr);
+	redis.sin_family = AF_INET; 
+	redis.sin_port = htons(_local); 
+
+	std::cout << _local << std::endl;
+
+	int sock = ::socket(AF_INET, SOCK_STREAM, 0);
+
+	if(::connect(sock, (struct sockaddr*)&redis, sizeof(redis)) != 0) {
+		::close(sock);
+		return "connect error";
+	}
+	std::cout << "connected" << std::endl;
+
+	ssize_t sent = ::send(sock, command.c_str(), command.size(), 0);
+	if((size_t)sent != command.size()) {
+		::close(sock);
+		return "send error";
+	}
+	std::cout << "sent = " << sent << std::endl;
+
+	char buf[1024] = {0};
+	ssize_t bytes = ::recv(sock, buf, sizeof(buf), 0);
+	std::cout << "received " << bytes << std::endl;
+
+	::close(sock);
+	if(bytes > 0) {
+		return buf;
+	} else {
+		return "receive error";
+	}
 }
 
