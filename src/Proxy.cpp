@@ -97,7 +97,7 @@ void Proxy::proxyToAddress(const std::string& address, int port)
 	proxy.sin_family = AF_INET; 
 	proxy.sin_port = htons(port); 
 
-	if(::memcmp(&_proxy, &proxy, sizeof(_proxy)) != 0) {
+	if(::memcmp(&_proxy, &proxy, sizeof(proxy)) != 0) {
 		_proxy = proxy;
 		char val[20] = {0};
 		::snprintf(val, sizeof(val), "%u", port);

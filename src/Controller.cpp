@@ -320,6 +320,7 @@ void Controller::lead()
 	std::cout << "Lead" << std::endl;
 	if(_state != Leading) {
 		_since = Time().now();
+		_proxy.proxyToLocal();
 	}
 	_leader = _self;
 	_state = Leading;
