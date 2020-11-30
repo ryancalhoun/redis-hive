@@ -113,7 +113,7 @@ void Proxy::reset()
 bool Proxy::listen(int port)
 {
 	struct sockaddr_in addr = { 0 };
-	_server = ::socket(AF_INET, SOCK_STREAM, 0);
+	_server = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
 
 	if(_server == -1) {
 		return false;
@@ -151,12 +151,12 @@ int Proxy::accept()
 	struct sockaddr_in peer;
 	socklen_t len = sizeof(peer);
 
-	int client = ::accept(_server, (struct sockaddr*)&peer, &len);
+	int client = ::accept4(_server, (struct sockaddr*)&peer, &len, SOCK_CLOEXEC);
 	if(client == -1) {
 		return -1;
 	}
 
-	int sock = ::socket(AF_INET, SOCK_STREAM, 0);
+	int sock = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
 	if(sock == -1) {
 		::close(client);
 		return -1;
@@ -201,7 +201,7 @@ std::string Proxy::runCommand(const std::string& command)
 	redis.sin_family = AF_INET; 
 	redis.sin_port = htons(_local); 
 
-	int sock = ::socket(AF_INET, SOCK_STREAM, 0);
+	int sock = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
 
 	if(::connect(sock, (struct sockaddr*)&redis, sizeof(redis)) != 0) {
 		::close(sock);

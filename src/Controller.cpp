@@ -127,7 +127,7 @@ Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList&
 bool Controller::listen(int port)
 {
 	struct sockaddr_in addr = { 0 };
-	_server = ::socket(AF_INET, SOCK_STREAM, 0);
+	_server = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
 
 	if(_server == -1) {
 		return false;
@@ -165,7 +165,7 @@ int Controller::accept(int fd)
 	struct sockaddr_in peer;
 	socklen_t len = sizeof(peer);
 
-	int client = ::accept(fd, (struct sockaddr*)&peer, &len);
+	int client = ::accept4(fd, (struct sockaddr*)&peer, &len, SOCK_CLOEXEC);
 	if(client == -1) {
 		return -1;
 	}
@@ -338,7 +338,7 @@ int Controller::connectTo(const std::string& peer) const
 	::inet_aton(peer.substr(0, c).c_str(), &addr.sin_addr);
 	addr.sin_port = htons(port); 
 
-	int sock = ::socket(AF_INET, SOCK_STREAM, 0);
+	int sock = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
 	if(::connect(sock, (struct sockaddr*)&addr, sizeof(addr)) == 0) {
 		return sock;
 	} else {
