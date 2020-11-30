@@ -240,9 +240,10 @@ int Controller::read(int fd)
 		if(received.gets('e') == "ping") {
 			Packet ack;
 			packetFor("ack", ack);
-			sendTo(fd, ack.serialize());
+			std::string reply = ack.serialize();
+			::send(fd, reply.c_str(), reply.size(), 0);
 			_eventBus.remove(fd);
-			std::cout << "ACK " << ack.serialize() << std::endl;
+			std::cout << "ACK " << reply << std::endl;
 		}
 	}
 
