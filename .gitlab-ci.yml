@@ -1,5 +1,9 @@
+default:
+  image: $CI_REGISTRY_IMAGE/builder
+
 stages:
 - prep
+- build
 
 prepare builder image:
   stage: prep
@@ -15,3 +19,8 @@ prepare builder image:
   - docker pull $CI_REGISTRY_IMAGE/builder:latest || echo Not built yet
   - docker build -t $CI_REGISTRY_IMAGE/builder -f builder.dockerfile --cache-from $CI_REGISTRY_IMAGE/builder:latest .
   - docker push $CI_REGISTRY_IMAGE/builder
+
+build:
+  stage: build
+  script:
+  - make

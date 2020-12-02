@@ -3,6 +3,7 @@ CC          := g++
 TARGET      := redis-hive
 
 SRCDIR      := src
+TESTDIR     := test
 INCDIR      := include
 BUILDDIR    := obj
 TARGETDIR   := bin
@@ -14,12 +15,16 @@ LIB         :=
 INC         := -I$(INCDIR) -I/usr/local/include
 
 SOURCES     := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
-OBJECTS     := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.$(OBJEXT)))
+TESTS       := $(shell find $(TESTDIR) -type f -name *.$(SRCEXT))
+OBJECTS     := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/src/%,$(SOURCES:.$(SRCEXT)=.$(OBJEXT)))
+TESTOBJECTS := $(patsubst $(TESTDIR)/%,$(BUILDDIR)/test/%,$(TESTS:.$(SRCEXT)=.$(OBJEXT)))
 DEP         := $(OBJECTS:%.o=%.d)
+TESTDEP     := $(TESTOBJECTS:%.o=%.d)
 
-all: $(TARGETDIR) $(BUILDDIR) $(TARGET)
+all: $(TARGETDIR) $(BUILDDIR) $(TARGET) $(TARGET)_test
 
 -include $(DEP)
+-include $(TESTDEP)
 
 clean:
 	rm -rf $(BUILDDIR) $(TARGETDIR)
@@ -27,12 +32,24 @@ clean:
 $(TARGETDIR):
 	@mkdir -p $(TARGETDIR)
 $(BUILDDIR):
-	@mkdir -p $(BUILDDIR)
+	@mkdir -p $(BUILDDIR)/src
+	@mkdir -p $(BUILDDIR)/test
 
 $(TARGET): $(OBJECTS)
 	$(CC) -o $(TARGETDIR)/$(TARGET) $(OBJECTS) $(LIB)
 
-$(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
+$(TARGET)_test: $(TESTOBJECTS) $(OBJECTS)
+	$(CC) -o $(TARGETDIR)/$(TARGET)_test $(TESTOBJECTS) $(filter-out obj/src/main.o,$(OBJECTS)) $(LIB) -Lcppunit/lib -lcppunit
+
+$(BUILDDIR)/src/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 	$(CC) $(CFLAGS) $(INC) -c -o $@ $<
+
+$(BUILDDIR)/test/%.$(OBJEXT): $(TESTDIR)/%.$(SRCEXT) cppunit
+	$(CC) $(CFLAGS) $(INC) -Icppunit/include -c -o $@ $<
+
+cppunit.tgz:
+	curl -L https://github.com/ryancalhoun/cppunit/releases/download/v1.14.0-11/cppunit-linux-x86_64-gcc.tgz > cppunit.tgz
+cppunit: cppunit.tgz
+	tar zxf cppunit.tgz
 
 .PHONY: all clean
