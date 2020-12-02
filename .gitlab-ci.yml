@@ -1,0 +1,15 @@
+stages:
+- prep
+
+prep:
+  only:
+    changes:
+    - builder.dockerfile
+  image: docker:dind
+  services:
+    - name: docker:dind
+
+  script:
+  - docker login $CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD  
+  - docker build -t $CI_REGISTRY_IMAGE/builder -f builder.dockerfile
+  - docker push $CI_REGISTRY_IMAGE
