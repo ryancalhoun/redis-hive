@@ -39,16 +39,20 @@ $(TARGET): $(OBJECTS)
 	$(CC) -o $(TARGETDIR)/$(TARGET) $(OBJECTS) $(LIB)
 
 $(TARGET)_test: $(TESTOBJECTS) $(OBJECTS)
-	$(CC) -o $(TARGETDIR)/$(TARGET)_test $(TESTOBJECTS) $(filter-out obj/src/main.o,$(OBJECTS)) $(LIB) -Lcppunit/lib -lcppunit
+	$(CC) -o $(TARGETDIR)/$(TARGET)_test $(TESTOBJECTS) $(filter-out obj/src/main.o,$(OBJECTS)) -Lcppunit/lib -lcppunit $(LIB)
+
+test: $(TARGET)_test
+	$(TARGETDIR)/$(TARGET)_test
 
 $(BUILDDIR)/src/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 	$(CC) $(CFLAGS) $(INC) -c -o $@ $<
 
 $(BUILDDIR)/test/%.$(OBJEXT): $(TESTDIR)/%.$(SRCEXT) cppunit
-	$(CC) $(CFLAGS) $(INC) -Icppunit/include -c -o $@ $<
+	$(CC) $(CFLAGS) $(INC) -Isrc -Icppunit/include -c -o $@ $<
 
 cppunit.tgz:
-	curl -L https://github.com/ryancalhoun/cppunit/releases/download/v1.14.0-11/cppunit-linux-x86_64-gcc.tgz > cppunit.tgz
+	curl --fail -H "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" https://gitlab.com/api/v4/projects/22845459/packages/generic/cppunit/1.40.0/cppunit-linux-x86_64.tgz -o cppunit.tgz
+
 cppunit: cppunit.tgz
 	tar zxf cppunit.tgz
 

@@ -4,6 +4,7 @@ default:
 stages:
 - prep
 - build
+- test
 
 prepare builder image:
   stage: prep
@@ -24,3 +25,13 @@ build:
   stage: build
   script:
   - make
+  artifacts:
+    paths:
+    - bin
+    expire_in: 1 hour
+
+test:
+  stage: test
+  script:
+  - make test
+
