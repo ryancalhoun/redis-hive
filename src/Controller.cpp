@@ -3,6 +3,7 @@
 #include "IProxy.h"
 #include "IEventBus.h"
 #include "Time.h"
+#include "TcpSocket.h"
 
 #include <cstdio> 
 #include <cstdlib> 
@@ -19,30 +20,42 @@
 
 namespace
 {
-	class CB : public IEventBus::ICallback
+	class Ping : public IEventBus::ICallback
 	{
 	public:
-		CB(Controller& controller, int (Controller::*f)(int), int fd)
+		Ping(Controller& controller)
 			: _controller(controller)
-			, _f(f)
-			, _fd(fd)
 		{}
 
-		~CB()
+		int operator()()
 		{
-			::close(_fd);
+			return _controller.ping();
+		}
+	protected:
+		Controller& _controller;
+	};
+
+	class Read : public IEventBus::ICallback
+	{
+	public:
+		Read(Controller& controller, const TcpSocket& client)
+			: _controller(controller)
+			, _client(client)
+		{}
+
+		~Read()
+		{
+			_client.close();
 		}
 
 		int operator()()
 		{
-			return (_controller.*_f)(_fd);
+			return _controller.read(_client);
 		}
 	protected:
 		Controller& _controller;
-		int (Controller::*_f)(int);
-		int _fd;
+		TcpSocket _client;
 	};
-
 }
 
 class Controller::Packet
@@ -113,7 +126,8 @@ protected:
 };
 
 Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates)
-	: _proxy(proxy)
+	: _server(*this, eventBus)
+	, _proxy(proxy)
 	, _eventBus(eventBus)
 	, _candidates(candidates)
 	, _interval(5000)
@@ -122,67 +136,37 @@ Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList&
 	, _self(candidates.getSelf())
 	
 {
+	TcpSocket sock;
+}
+
+void Controller::onAccept(const TcpSocket& client)
+{
+	_eventBus.add(client, new Read(*this, client));
 }
 
 bool Controller::listen(int port)
 {
-	struct sockaddr_in addr = { 0 };
-	_server = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
-
-	if(_server == -1) {
+	if(! _server.listen(port)) {
 		return false;
 	}
 
-	addr.sin_family = AF_INET; 
-	addr.sin_addr.s_addr = ::htonl(INADDR_ANY); 
-	addr.sin_port = htons(port); 
-
-	int on = 1;
-    ::setsockopt(_server, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-
-	if(::bind(_server, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-		std::cout << "bind error on " << port << " (" << errno << ")" << std::endl;
-		return false;
-	}
-	if(::listen(_server, 5) != 0) {
-		return false;
-	}
-	struct linger l;
-	l.l_onoff = 1;
-	l.l_linger = 1;
-	::setsockopt(_server, SOL_SOCKET, SO_LINGER, &l, sizeof(struct linger));
-
-	_eventBus.add(_server, new CB(*this, &Controller::accept, _server));
-	_eventBus.every(_interval, new CB(*this, &Controller::ping, 0));
+	_eventBus.every(_interval, new Ping(*this));
 
 	std::cout << "Controller listening on port " << port << std::endl;
 
 	return true;
 }
 
-int Controller::accept(int fd)
+int Controller::read(TcpSocket& client)
 {
-	struct sockaddr_in peer;
-	socklen_t len = sizeof(peer);
-
-	int client = ::accept4(fd, (struct sockaddr*)&peer, &len, SOCK_CLOEXEC);
-	if(client == -1) {
+	char buf[1024] = {0};
+	if(! client.read(buf, sizeof(buf))) {
 		return -1;
 	}
 
-	_eventBus.add(client, new CB(*this, &Controller::read, client));
-	return 0;
-}
-
-int Controller::read(int fd)
-{
-	char buf[1024] = {0};
-	ssize_t bytes = ::recv(fd, buf, sizeof(buf), MSG_DONTWAIT);
-
-	if(bytes == 0) {
-		_eventBus.remove(fd);
-
-	} else if(bytes > 0) {
+	if(client.bytes() == 0) {
+		_eventBus.remove(client);
+	} else {
 		Packet received(buf);
 		std::string peer = received.gets('a');
 		std::string peerFollowing = received.gets('f');
@@ -241,8 +225,8 @@ int Controller::read(int fd)
 			Packet ack;
 			packetFor("ack", ack);
 			std::string reply = ack.serialize();
-			::send(fd, reply.c_str(), reply.size(), 0);
-			_eventBus.remove(fd);
+			client.write(reply.c_str(), reply.size());
+			_eventBus.remove(client);
 			std::cout << "ACK " << reply << std::endl;
 		}
 	}
@@ -250,7 +234,7 @@ int Controller::read(int fd)
 	return 0;
 }
 
-int Controller::ping(int)
+int Controller::ping()
 {
 	purge();
 
@@ -268,7 +252,7 @@ int Controller::ping(int)
 		std::vector<std::string>::const_iterator it;
 		for(it = candidates.begin(); it != candidates.end(); ++it) {
 			if(*it != _self) {
-				if(sendTo(connectTo(*it), packet.serialize())) {
+				if(sendTo(*it, packet.serialize())) {
 					++sent;
 				}
 			}
@@ -285,7 +269,7 @@ int Controller::ping(int)
 		}
 
 	} else if(_state == Following) {
-		if(! sendTo(connectTo(_leader), packet.serialize())) {
+		if(! sendTo(_leader, packet.serialize())) {
 			propose();
 		}
 	}
@@ -328,38 +312,16 @@ void Controller::lead()
 	_election.clear();
 }
 
-int Controller::connectTo(const std::string& peer) const
+bool Controller::sendTo(const std::string& addr, const std::string& data)
 {
-	struct sockaddr_in addr;
-	addr.sin_family = AF_INET; 
-
-	size_t c = peer.find(':');
-	int port = atoi(peer.substr(c+1).c_str());
-
-	::inet_aton(peer.substr(0, c).c_str(), &addr.sin_addr);
-	addr.sin_port = htons(port); 
-
-	int sock = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
-	if(::connect(sock, (struct sockaddr*)&addr, sizeof(addr)) == 0) {
-		return sock;
-	} else {
-		::close(sock);
-		return -1;
+	TcpSocket sock;
+	if(! sock.connect(addr) || ! sock.write(data.c_str(), data.size())) {
+		sock.close();
+		return false;
 	}
-}
 
-bool Controller::sendTo(int fd, const std::string& data)
-{
-	if(fd != -1) {
-		ssize_t bytes = ::send(fd, data.c_str(), data.size(), 0);
-		if(bytes == (ssize_t)data.size()) {
-			_eventBus.add(fd, new CB(*this, &Controller::read, fd));
-			return true;
-		} else {
-			::close(fd);
-		}
-	}
-	return false;
+	_eventBus.add(sock, new Read(*this, sock));
+	return true;
 }
 
 void Controller::packetFor(const std::string& reason, Packet& packet) const
@@ -419,7 +381,7 @@ void Controller::election()
 		std::map<std::string,unsigned long long>::const_iterator it;
 		for(it = _members.begin(); it != _members.end(); ++it) {
 			if(it->first != _self) {
-				sendTo(connectTo(it->first), packet.serialize());
+				sendTo(it->first, packet.serialize());
 			}
 		}
 	}

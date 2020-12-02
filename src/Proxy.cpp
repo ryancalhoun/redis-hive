@@ -15,25 +15,10 @@
 
 namespace
 {
-	class Accept : public IEventBus::ICallback
-	{
-	public:
-		Accept(Proxy& proxy)
-			: _proxy(proxy)
-		{}
-
-		int operator()()
-		{
-			return _proxy.accept();
-		}
-	protected:
-		Proxy& _proxy;
-	};
-
 	class Copy : public IEventBus::ICallback
 	{
 	public:
-		Copy(Proxy& proxy, int from, int to)
+		Copy(Proxy& proxy, const TcpSocket& from, const TcpSocket& to)
 			: _proxy(proxy)
 			, _from(from)
 			, _to(to)
@@ -41,24 +26,25 @@ namespace
 
 		~Copy()
 		{
-			::close(_from);
+			_from.close();
 		}
 
 		int operator()()
 		{
-			return _proxy.copy(_from, _to);
+			_proxy.copy(_from, _to);
+			return 0;
 		}
 	protected:
 		Proxy& _proxy;
-		int _from;
-		int _to;
+		TcpSocket _from;
+		TcpSocket _to;
 	};
 }
 
 Proxy::Proxy(IEventBus& eventBus, int port)
-	: _eventBus(eventBus)
+	: _server(*this, eventBus)
+	, _eventBus(eventBus)
 	, _local(port)
-	, _proxy(*new struct sockaddr_in)
 {
 	proxyToLocal();
 }
@@ -66,15 +52,12 @@ Proxy::Proxy(IEventBus& eventBus, int port)
 Proxy::~Proxy()
 {
 	shutdown();
-	delete &_proxy;
 }
 
 void Proxy::shutdown()
 {
 	reset();
-
-	_eventBus.remove(_server);
-	::close(_server);
+	_server.shutdown();
 }
 
 int Proxy::getLocalPort() const
@@ -84,21 +67,17 @@ int Proxy::getLocalPort() const
 
 void Proxy::proxyToLocal()
 {
-	::inet_aton("127.0.0.1", &_proxy.sin_addr);
-	_proxy.sin_family = AF_INET; 
-	_proxy.sin_port = htons(_local); 
+	_address = "127.0.0.1";
+	_port = _local;
 
 	runCommand("REPLICAOF NO ONE\r\n");;
 }
 void Proxy::proxyToAddress(const std::string& address, int port)
 {
-	struct sockaddr_in proxy;
-	::inet_aton(address.c_str(), &proxy.sin_addr);
-	proxy.sin_family = AF_INET; 
-	proxy.sin_port = htons(port); 
+	if(address != _address || _port != port) {
+		_address = address;
+		_port = port;
 
-	if(::memcmp(&_proxy, &proxy, sizeof(proxy)) != 0) {
-		_proxy = proxy;
 		char val[20] = {0};
 		::snprintf(val, sizeof(val), "%u", port);
 		runCommand("REPLICAOF " + address + " " + val + "\r\n");
@@ -112,85 +91,37 @@ void Proxy::reset()
 
 bool Proxy::listen(int port)
 {
-	struct sockaddr_in addr = { 0 };
-	_server = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
-
-	if(_server == -1) {
+	if(! _server.listen(port)) {
 		return false;
 	}
-
-	addr.sin_family = AF_INET; 
-	addr.sin_addr.s_addr = ::htonl(INADDR_ANY); 
-	addr.sin_port = htons(port); 
-
-	int on = 1;
-    ::setsockopt(_server, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-
-	if(::bind(_server, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-		std::cout << "bind error on " << port << " (" << errno << ")" << std::endl;
-		return false;
-	}
-	if(::listen(_server, 5) != 0) {
-		return false;
-	}
-
-	struct linger l;
-	l.l_onoff = 1;
-	l.l_linger = 1;
-	::setsockopt(_server, SOL_SOCKET, SO_LINGER, &l, sizeof(struct linger));
-
-	_eventBus.add(_server, new Accept(*this));
 
 	std::cout << "Proxy listening on port " << port << std::endl;
 
 	return true;
 }
 
-int Proxy::accept()
+void Proxy::onAccept(const TcpSocket& client)
 {
-	struct sockaddr_in peer;
-	socklen_t len = sizeof(peer);
-
-	int client = ::accept4(_server, (struct sockaddr*)&peer, &len, SOCK_CLOEXEC);
-	if(client == -1) {
-		return -1;
-	}
-
-	int sock = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
-	if(sock == -1) {
-		::close(client);
-		return -1;
-	}
-
-	if(::connect(sock, (struct sockaddr*)&_proxy, sizeof(_proxy)) != 0) {
-		std::cout << "connect error " << errno << std::endl;
-		::close(client);
-		::close(sock);
-		return -1;
+	TcpSocket sock;
+	if(! sock.connect(_address, _port)) {
+		return;
 	}
 
 	_eventBus.add(client, new Copy(*this, client, sock), IEventBus::Volatile);
 	_eventBus.add(sock, new Copy(*this, sock, client), IEventBus::Volatile);
-
-	return 0;
 }
 
-int Proxy::copy(int from, int to)
+void Proxy::copy(TcpSocket& from, TcpSocket& to)
 {
 	char buf[1024];
-	ssize_t bytes = ::recv(from, buf, sizeof(buf), MSG_DONTWAIT);
-
-	if(bytes == 0) {
-		_eventBus.remove(from);
-		_eventBus.remove(to);
-	} else if(bytes > 0) {
-		ssize_t sent = ::send(to, buf, bytes, 0);
-		if(sent != bytes) {
-			return -1;
+	if(from.read(buf, sizeof(buf))) {
+		if(from.bytes() == 0) {
+			_eventBus.remove(from);
+			_eventBus.remove(to);
+		} else {
+			to.write(buf, from.bytes());
 		}
 	}
-
-	return 0;
 }
 
 std::string Proxy::runCommand(const std::string& command)

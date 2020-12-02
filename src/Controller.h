@@ -1,4 +1,7 @@
 #pragma once
+#include "TcpServer.h"
+#include "ITcpServerHandler.h"
+
 #include <string>
 #include <map>
 
@@ -6,16 +9,16 @@ class ICandidateList;
 class IProxy;
 class IEventBus;
 
-class Controller
+class Controller : public ITcpServerHandler
 {
 public:
 	Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates);
 
 	bool listen(int port);
+	void onAccept(const TcpSocket& client);
 
-	int accept(int fd);
-	int read(int fd);
-	int ping(int fd);
+	int read(TcpSocket& client);
+	int ping();
 
 	enum State
 	{
@@ -31,20 +34,18 @@ protected:
 	void propose();
 	void lead();
 
-	int connectTo(const std::string& peer) const;
-	bool sendTo(int fd, const std::string& data);
+	bool sendTo(const std::string& addr, const std::string& data);
 	void packetFor(const std::string& reason, Packet& packet) const;
 
 	void purge();
 	void election();
 
 protected:
+	TcpServer _server;
 	IProxy& _proxy;
 	IEventBus& _eventBus;
 	const ICandidateList& _candidates;
 	int _interval;
-
-	int _server;
 
 	State _state;
 	unsigned long long _since;

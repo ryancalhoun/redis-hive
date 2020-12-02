@@ -1,11 +1,12 @@
 #pragma once
 
 #include "IProxy.h"
+#include "ITcpServerHandler.h"
+#include "TcpServer.h"
 
 class IEventBus;
-struct sockaddr_in;
 
-class Proxy : public IProxy
+class Proxy : public IProxy, public ITcpServerHandler
 {
 public:
 	Proxy(IEventBus& eventBus, int port);
@@ -20,15 +21,17 @@ public:
 	void shutdown();
 	void reset();
 
-	int accept();
-	int copy(int from, int to);
+	void onAccept(const TcpSocket& client);
+	void copy(TcpSocket& from, TcpSocket& to);
 
 	std::string runCommand(const std::string& command);
 
 protected:
+	TcpServer _server;
 	IEventBus& _eventBus;
-	int _server;
 	int _local;
-	struct sockaddr_in& _proxy;
+
+	std::string _address;
+	int _port;
 };
 
