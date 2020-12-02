@@ -41,8 +41,8 @@ $(TARGET): $(OBJECTS)
 $(TARGET)_test: $(TESTOBJECTS) $(OBJECTS)
 	$(CC) -o $(TARGETDIR)/$(TARGET)_test $(TESTOBJECTS) $(filter-out obj/src/main.o,$(OBJECTS)) -Lcppunit/lib -lcppunit $(LIB)
 
-test: $(TARGET)_test
-	$(TARGETDIR)/$(TARGET)_test
+test:
+	./$(TARGETDIR)/$(TARGET)_test
 
 $(BUILDDIR)/src/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 	$(CC) $(CFLAGS) $(INC) -c -o $@ $<
@@ -56,4 +56,4 @@ cppunit.tgz:
 cppunit: cppunit.tgz
 	tar zxf cppunit.tgz
 
-.PHONY: all clean
+.PHONY: all clean test
