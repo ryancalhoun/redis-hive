@@ -2,6 +2,7 @@ stages:
 - prep
 
 prep:
+  stage: prepare builder image
   only:
     changes:
     - builder.dockerfile
