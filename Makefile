@@ -52,8 +52,8 @@ $(BUILDDIR)/test/%.$(OBJEXT): $(TESTDIR)/%.$(SRCEXT) cppunit
 
 cppunit.tgz:
 	curl https://gitlab.com/api/v4/groups/9386326/packages
-	curl https://gitlab.com/api/v4/projects/22845459/packages/cppunit
-	curl --fail -H "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" https://gitlab.com/api/v4/projects/22845459/packages/generic/cppunit/1.40.0/cppunit-linux-x86_64.tgz -o cppunit.tgz
+	curl https://gitlab.com/api/v4/projects/22845459/packages/814918
+	curl --fail -H "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" https://gitlab.com/api/v4/projects/22845459/packages/generic/cppunit/1.14.0/cppunit-linux-x86_64.tgz -o cppunit.tgz
 
 cppunit: cppunit.tgz
 	tar zxf cppunit.tgz
