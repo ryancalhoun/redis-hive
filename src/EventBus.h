@@ -10,9 +10,8 @@ public:
   EventBus();
   virtual ~EventBus();
 
-  void add(int fd, ICallback* cb, Type type);
+  void add(int fd, ICallback* cb);
   void every(int millis, ICallback* cb);
-  void removeAll(Type type);
   void remove(int fd);
 
   void run();
@@ -27,12 +26,7 @@ protected:
 protected:
   int _waiter;
 
-  struct Info
-  {
-    ICallback* cb;
-    Type type;
-  };
-  std::map<int,Info> _callback;
+  std::map<int,ICallback*> _callback;
 
   struct Schedule
   {

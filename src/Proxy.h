@@ -4,6 +4,9 @@
 #include "ITcpServerHandler.h"
 #include "TcpServer.h"
 
+#include <map>
+#include <set>
+
 class IEventBus;
 
 class Proxy : public IProxy, public ITcpServerHandler
@@ -33,5 +36,7 @@ protected:
 
   std::string _address;
   int _port;
+
+  std::map<std::string, std::set<int> > _connections;
 };
 

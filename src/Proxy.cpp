@@ -39,6 +39,18 @@ namespace
     TcpSocket _from;
     TcpSocket _to;
   };
+
+  std::string to_s(int port)
+  {
+    char val[8] = {0};
+    ::snprintf(val, sizeof(val), "%i", port);
+    return val;
+  }
+
+  std::string to_s(const std::string& address, int port)
+  {
+    return address + ":" + ::to_s(port);
+  }
 }
 
 Proxy::Proxy(IEventBus& eventBus, int port)
@@ -72,21 +84,32 @@ void Proxy::proxyToLocal()
 
   runCommand("REPLICAOF NO ONE\r\n");;
 }
+
 void Proxy::proxyToAddress(const std::string& address, int port)
 {
   if(address != _address || _port != port) {
+    reset();
+
     _address = address;
     _port = port;
 
-    char val[20] = {0};
-    ::snprintf(val, sizeof(val), "%u", port);
-    runCommand("REPLICAOF " + address + " " + val + "\r\n");
+    runCommand("REPLICAOF " + _address + " " + ::to_s(_port) + "\r\n");
   }
 }
 
 void Proxy::reset()
 {
-  _eventBus.removeAll(IEventBus::Volatile);
+  std::string previous = ::to_s(_address, _port);
+
+  std::map<std::string, std::set<int> >::iterator it = _connections.find(previous);
+  if(it != _connections.end()) {
+    std::set<int>::const_iterator conn = it->second.begin();
+    while(conn != it->second.end()) {
+      _eventBus.remove(*conn);
+      it->second.erase(conn++);
+    }
+    _connections.erase(it);
+  }
 }
 
 bool Proxy::listen(int port)
@@ -107,8 +130,10 @@ void Proxy::onAccept(const TcpSocket& client)
     return;
   }
 
-  _eventBus.add(client, new Copy(*this, client, sock), IEventBus::Volatile);
-  _eventBus.add(sock, new Copy(*this, sock, client), IEventBus::Volatile);
+  _connections[::to_s(_address, _port)].insert(sock);
+
+  _eventBus.add(client, new Copy(*this, client, sock));
+  _eventBus.add(sock, new Copy(*this, sock, client));
 }
 
 void Proxy::copy(TcpSocket& from, TcpSocket& to)

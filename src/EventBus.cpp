@@ -14,15 +14,15 @@ EventBus::EventBus()
 
 EventBus::~EventBus()
 {
-  std::map<int,Info>::const_iterator it;
+  std::map<int,ICallback*>::const_iterator it;
   for(it = _callback.begin(); it != _callback.end(); ) {
-    delete it->second.cb;
+    delete it->second;
     _callback.erase(it++);
   }
   ::close(_waiter);
 }
 
-void EventBus::add(int fd, ICallback* callback, Type type)
+void EventBus::add(int fd, ICallback* callback)
 {
   struct epoll_event ev = { 0 };
   ev.data.fd = fd;
@@ -32,8 +32,7 @@ void EventBus::add(int fd, ICallback* callback, Type type)
   if(::epoll_ctl(_waiter, EPOLL_CTL_ADD, fd, &ev) != 0 && errno == EEXIST) {
     ::epoll_ctl(_waiter, EPOLL_CTL_MOD, fd, &ev);
   }
-  Info info = { callback, type };
-  _callback[fd] = info;
+  _callback[fd] = callback;
 }
 
 void EventBus::every(int millis, ICallback* callback)
@@ -42,22 +41,12 @@ void EventBus::every(int millis, ICallback* callback)
   _schedule.push_back(schedule);
 }
 
-void EventBus::removeAll(Type type)
-{
-  std::map<int,Info>::const_iterator it;
-  for(it = _callback.begin(); it != _callback.end(); ++it) {
-    if(it->second.type == type) {
-      _callback.erase(it);
-    }
-  }
-}
-
 void EventBus::remove(int fd)
 {
   ::epoll_ctl(_waiter, EPOLL_CTL_DEL, fd, NULL);
-  std::map<int,Info>::const_iterator it = _callback.find(fd);
+  std::map<int,ICallback*>::const_iterator it = _callback.find(fd);
   if(it != _callback.end()) {
-    delete it->second.cb;
+    delete it->second;
     _callback.erase(it);
   }
 }
@@ -86,9 +75,9 @@ void EventBus::next()
   struct epoll_event ev = { 0 };
 
   if(::epoll_wait(_waiter, &ev, 1, timeout()) != -1) {
-    std::map<int,Info>::const_iterator it = _callback.find(ev.data.fd);
+    std::map<int,ICallback*>::const_iterator it = _callback.find(ev.data.fd);
     if(it != _callback.end()) {
-      (*it->second.cb)();
+      (*it->second)();
     }
   }
 
