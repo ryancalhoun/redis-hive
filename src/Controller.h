@@ -30,6 +30,7 @@ protected:
 	void packetFor(Packet::Reason reason, Packet& packet) const;
 
 	void purge();
+	void broadcast();
 	void election();
 
 protected:

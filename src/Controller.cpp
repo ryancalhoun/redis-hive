@@ -103,7 +103,10 @@ int Controller::read(TcpSocket& client)
 		Packet received(buf);
 		unsigned long long now = Time().now();
 
-		_members[received.self()] = now;
+		if(received.self() != _self) {
+			_members[received.self()] = now;
+		}
+
 		if(received.state() == Packet::Proposing) {
 			_election[received.self()] = received.since();
 		} else {
@@ -116,6 +119,7 @@ int Controller::read(TcpSocket& client)
 			} else {
 				follow(received.following());
 			}
+
 		} else if(_state == Packet::Following) {
 			if(_leader == received.following()) {
 				if(received.state() == Packet::Leading) {
@@ -124,7 +128,9 @@ int Controller::read(TcpSocket& client)
 
 					std::vector<std::string>::const_iterator it;
 					for(it = received.members().begin(); it != received.members().end(); ++it) {
-						_members[*it] = now;
+						if(*it != _self) {
+							_members[*it] = now;
+						}
 					}
 				}
 			} else {
@@ -150,6 +156,15 @@ int Controller::read(TcpSocket& client)
 			client.write(reply.c_str(), reply.size());
 			_eventBus.remove(client);
 			std::cout << "ACK " << reply << std::endl;
+		}
+
+		if(received.reason() == Packet::Ack) {
+			if(_state == Packet::Proposing) {
+				if( _members.size() == _election.size()) {
+					std::cout << "Shortcut election" << std::endl;
+					election();
+				}
+			}
 		}
 	}
 
@@ -192,7 +207,13 @@ int Controller::ping()
 
 	} else if(_state == Packet::Following) {
 		if(! sendTo(_leader, packet.serialize())) {
-			propose();
+			if(_members.size() <= 1) {
+				lead();
+			} else {
+				_members.erase(_leader);
+				propose();
+				broadcast();
+			}
 		}
 	}
 
@@ -278,6 +299,17 @@ void Controller::purge()
 	}
 }
 
+void Controller::broadcast()
+{
+	Packet packet;
+	packetFor(Packet::Ping, packet);
+
+	std::map<std::string,unsigned long long>::const_iterator it;
+	for(it = _members.begin(); it != _members.end(); ++it) {
+		sendTo(it->first, packet.serialize());
+	}
+}
+
 void Controller::election()
 {
 	std::map<std::string,unsigned long long>::const_iterator winner = _election.begin();
@@ -290,16 +322,7 @@ void Controller::election()
 
 	if(winner == _election.end() || winner->first == _self) {
 		lead();
-
-		Packet packet;
-		packetFor(Packet::Ping, packet);
-
-		std::map<std::string,unsigned long long>::const_iterator it;
-		for(it = _members.begin(); it != _members.end(); ++it) {
-			if(it->first != _self) {
-				sendTo(it->first, packet.serialize());
-			}
-		}
+		broadcast();
 	}
 }
 
