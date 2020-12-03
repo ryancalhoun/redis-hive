@@ -9,29 +9,29 @@ class IEventBus;
 class Proxy : public IProxy, public ITcpServerHandler
 {
 public:
-	Proxy(IEventBus& eventBus, int port);
+  Proxy(IEventBus& eventBus, int port);
 
-	virtual ~Proxy();
+  virtual ~Proxy();
 
-	int getLocalPort() const;
-	void proxyToLocal();
-	void proxyToAddress(const std::string& address, int port);
-	bool listen(int port);
+  int getLocalPort() const;
+  void proxyToLocal();
+  void proxyToAddress(const std::string& address, int port);
+  bool listen(int port);
 
-	void shutdown();
-	void reset();
+  void shutdown();
+  void reset();
 
-	void onAccept(const TcpSocket& client);
-	void copy(TcpSocket& from, TcpSocket& to);
+  void onAccept(const TcpSocket& client);
+  void copy(TcpSocket& from, TcpSocket& to);
 
-	std::string runCommand(const std::string& command);
+  std::string runCommand(const std::string& command);
 
 protected:
-	TcpServer _server;
-	IEventBus& _eventBus;
-	int _local;
+  TcpServer _server;
+  IEventBus& _eventBus;
+  int _local;
 
-	std::string _address;
-	int _port;
+  std::string _address;
+  int _port;
 };
 

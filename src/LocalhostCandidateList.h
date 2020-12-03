@@ -5,14 +5,14 @@
 class LocalhostCandidateList : public ICandidateList
 {
 public:
-	LocalhostCandidateList(int self);
+  LocalhostCandidateList(int self);
 
-	void add(int port);
+  void add(int port);
 
-	std::string getSelf() const;
-	std::vector<std::string> getCandidates() const;
+  std::string getSelf() const;
+  std::vector<std::string> getCandidates() const;
 
 protected:
-	std::string _self;
-	std::vector<std::string> _list;
+  std::string _self;
+  std::vector<std::string> _list;
 };

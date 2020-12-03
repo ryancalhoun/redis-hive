@@ -8,23 +8,23 @@
 
 int main(int argc, const char* argv[])
 {
-	if(argc < 4) {
-		std::cout << "usage " << argv[0] << " REDIS PROXY CONTROLLER [PEER...]" << std::endl;
-		exit(0);
-	}
+  if(argc < 4) {
+    std::cout << "usage " << argv[0] << " REDIS PROXY CONTROLLER [PEER...]" << std::endl;
+    exit(0);
+  }
 
-	EventBus eventBus;
-	Proxy proxy(eventBus, atoi(argv[1]));
-	LocalhostCandidateList candidates(atoi(argv[3]));
+  EventBus eventBus;
+  Proxy proxy(eventBus, atoi(argv[1]));
+  LocalhostCandidateList candidates(atoi(argv[3]));
 
-	Controller controller(proxy, eventBus, candidates);
+  Controller controller(proxy, eventBus, candidates);
 
-	proxy.listen(atoi(argv[2]));
-	controller.listen(atoi(argv[3]));
+  proxy.listen(atoi(argv[2]));
+  controller.listen(atoi(argv[3]));
 
-	for(int i = 4; i < argc; ++i) {
-		candidates.add(atoi(argv[i]));
-	}
+  for(int i = 4; i < argc; ++i) {
+    candidates.add(atoi(argv[i]));
+  }
 
-	eventBus.run();
+  eventBus.run();
 }

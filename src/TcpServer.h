@@ -7,16 +7,16 @@ class ITcpServerHandler;
 class TcpServer
 {
 public:
-	TcpServer(ITcpServerHandler& handler, IEventBus& eventBus);
+  TcpServer(ITcpServerHandler& handler, IEventBus& eventBus);
 
-	void shutdown();
-	bool listen(int port);
+  void shutdown();
+  bool listen(int port);
 
-	void accept();
+  void accept();
 
 protected:
-	ITcpServerHandler& _handler;
-	IEventBus& _eventBus;
-	TcpSocket _server;
+  ITcpServerHandler& _handler;
+  IEventBus& _eventBus;
+  TcpSocket _server;
 };
 

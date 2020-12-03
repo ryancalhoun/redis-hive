@@ -4,34 +4,34 @@
 
 namespace
 {
-	std::string addr(int port)
-	{
-		char buffer [50] = { 0 };
+  std::string addr(int port)
+  {
+    char buffer [50] = { 0 };
 
-		::strcpy(buffer, "127.0.0.1:");
-		::snprintf(buffer + 10, sizeof(buffer) - 10, "%d", port);
+    ::strcpy(buffer, "127.0.0.1:");
+    ::snprintf(buffer + 10, sizeof(buffer) - 10, "%d", port);
 
-		return buffer;
-	}
+    return buffer;
+  }
 }
 
 LocalhostCandidateList::LocalhostCandidateList(int self)
-	: _self(addr(self))
+  : _self(addr(self))
 {
 }
 
 void LocalhostCandidateList::add(int port)
 {
-	_list.push_back(addr(port));
+  _list.push_back(addr(port));
 }
 
 std::string LocalhostCandidateList::getSelf() const
 {
-	return _self;
+  return _self;
 }
 
 std::vector<std::string> LocalhostCandidateList::getCandidates() const
 {
-	return _list;
+  return _list;
 }
 

@@ -3,5 +3,5 @@
 class Time
 {
 public:
-	unsigned long long now() const;
+  unsigned long long now() const;
 };

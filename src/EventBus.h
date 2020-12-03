@@ -7,39 +7,39 @@
 class EventBus : public IEventBus
 {
 public:
-	EventBus();
-	virtual ~EventBus();
+  EventBus();
+  virtual ~EventBus();
 
-	void add(int fd, ICallback* cb, Type type);
-	void every(int millis, ICallback* cb);
-	void removeAll(Type type);
-	void remove(int fd);
+  void add(int fd, ICallback* cb, Type type);
+  void every(int millis, ICallback* cb);
+  void removeAll(Type type);
+  void remove(int fd);
 
-	void run();
+  void run();
 
-	void next();
-
-protected:
-	void scheduled();
-	int timeout() const;
-	unsigned long long now() const;
+  void next();
 
 protected:
-	int _waiter;
+  void scheduled();
+  int timeout() const;
+  unsigned long long now() const;
 
-	struct Info
-	{
-		ICallback* cb;
-		Type type;
-	};
-	std::map<int,Info> _callback;
+protected:
+  int _waiter;
 
-	struct Schedule
-	{
-		ICallback* cb;
-		int millis;
-		unsigned long long last;
-	};
-	std::vector<Schedule> _schedule;
+  struct Info
+  {
+    ICallback* cb;
+    Type type;
+  };
+  std::map<int,Info> _callback;
+
+  struct Schedule
+  {
+    ICallback* cb;
+    int millis;
+    unsigned long long last;
+  };
+  std::vector<Schedule> _schedule;
 };
 
