@@ -58,80 +58,13 @@ namespace
 	};
 }
 
-class Controller::Packet
-{
-public:
-	Packet() {}
-
-	Packet(const std::string& data)
-	{
-		parse(data);
-	}
-
-	std::string gets(char c) const
-	{
-		std::map<char,std::string>::const_iterator it = _data.find(c);
-		if(it == _data.end()) {
-			return "";
-		} else {
-			return it->second;
-		}
-	}
-	unsigned long long getu(char c) const
-	{
-		return ::strtoull(gets(c).c_str(), NULL, 10);
-	}
-	void set(char c, const std::string& v)
-	{
-		_data[c] = v;
-	}
-	void set(char c, char v)
-	{
-		set(c, std::string(1, v));
-	}
-	void set(char c, int v)
-	{
-		set(c, (unsigned long long)v);
-	}
-	void set(char c, unsigned long long v)
-	{
-		char val[50] = {0};
-		::snprintf(val, sizeof(val), "%llu", v);
-		set(c, val);
-	}
-
-	std::string serialize() const
-	{
-		std::string data;
-		std::map<char,std::string>::const_iterator it;
-		for(it = _data.begin(); it != _data.end(); ++it) {
-			data += std::string(1, it->first) + "=" + it->second + "|";
-		}
-		return data;
-	}
-	void parse(const std::string& data)
-	{
-		size_t begin = 0, end = 0;
-		for(; end != std::string::npos; begin = end + 1) {
-			end = data.find('|', begin);
-			std::string part = data.substr(begin, end-begin);
-			if(part.size() > 2) {
-				_data[part[0]] = part.substr(2);
-			}
-		}
-	}
-
-protected:
-	std::map<char,std::string> _data;
-};
-
 Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates)
 	: _server(*this, eventBus)
 	, _proxy(proxy)
 	, _eventBus(eventBus)
 	, _candidates(candidates)
 	, _interval(5000)
-	, _state(Alone)
+	, _state(Packet::Alone)
 	, _since(Time().now())
 	, _self(candidates.getSelf())
 	
@@ -168,62 +101,51 @@ int Controller::read(TcpSocket& client)
 		_eventBus.remove(client);
 	} else {
 		Packet received(buf);
-		std::string peer = received.gets('a');
-		std::string peerFollowing = received.gets('f');
-		std::string peerState = received.gets('s');
-		unsigned long long peerSince = received.getu('t');
-
 		unsigned long long now = Time().now();
 
-		_members[peer] = now;
-		if(peerState == "P") {
-			_election[peer] = peerSince;
+		_members[received.self()] = now;
+		if(received.state() == Packet::Proposing) {
+			_election[received.self()] = received.since();
 		} else {
-			_election.erase(peer);
+			_election.erase(received.self());
 		}
 
-		if(_state == Alone || _state == Proposing) {
-			if(peerFollowing.size() == 0) {
+		if(_state == Packet::Alone || _state == Packet::Proposing) {
+			if(received.following().size() == 0) {
 				propose();
 			} else {
-				follow(peerFollowing);
+				follow(received.following());
 			}
-		} else if(_state == Following) {
-			if(_leader == peerFollowing) {
-				if(peerState == "L") {
-					int port = received.getu('r');
+		} else if(_state == Packet::Following) {
+			if(_leader == received.following()) {
+				if(received.state() == Packet::Leading) {
 					size_t c = _leader.find(':');
-					_proxy.proxyToAddress(_leader.substr(0, c), port);
+					_proxy.proxyToAddress(_leader.substr(0, c), received.proxy());
 
-					std::string peerMembers = received.gets('m');
-					size_t begin = 0, end = 0;
-					for(; end != std::string::npos; begin = end + 1) {
-						end = peerMembers.find(',', begin);
-						std::string member = peerMembers.substr(begin, end - begin);
-						if(member.size() > 0) {
-							_members[member] = now;
-						}
+					std::vector<std::string>::const_iterator it;
+					for(it = received.members().begin(); it != received.members().end(); ++it) {
+						_members[*it] = now;
 					}
 				}
 			} else {
 				// accept the newer
-				if(_since < peerSince) {
-					follow(peerFollowing);
+				if(_since < received.since()) {
+					follow(received.following());
 				}
 			}
 
-		} else if(_state == Leading) {
-			if(peerState == "L" && _self != peer) {
+		} else if(_state == Packet::Leading) {
+			if(received.state() == Packet::Leading && _self != received.self()) {
 				// accept the older
-				if(_since > peerSince) {
-					follow(peer);
+				if(_since > received.since()) {
+					follow(received.self());
 				}
 			}
 		}
 
-		if(received.gets('e') == "ping") {
+		if(received.reason() == Packet::Ping) {
 			Packet ack;
-			packetFor("ack", ack);
+			packetFor(Packet::Ack, ack);
 			std::string reply = ack.serialize();
 			client.write(reply.c_str(), reply.size());
 			_eventBus.remove(client);
@@ -239,11 +161,11 @@ int Controller::ping()
 	purge();
 
 	Packet packet;
-	packetFor("ping", packet);
+	packetFor(Packet::Ping, packet);
 
 	unsigned long long now = Time().now();
 
-	if(_state == Alone || _state == Proposing) {
+	if(_state == Packet::Alone || _state == Packet::Proposing) {
 		std::vector<std::string> candidates = _candidates.getCandidates();
 
 		std::sort(candidates.begin(), candidates.end());
@@ -262,13 +184,13 @@ int Controller::ping()
 			propose();
 		}
 
-		if(_state == Proposing) {
+		if(_state == Packet::Proposing) {
 			if((int)(now - _since) > _interval*3) {
 				election();
 			}
 		}
 
-	} else if(_state == Following) {
+	} else if(_state == Packet::Following) {
 		if(! sendTo(_leader, packet.serialize())) {
 			propose();
 		}
@@ -280,35 +202,35 @@ int Controller::ping()
 void Controller::follow(const std::string& leader)
 {
 	std::cout << "Follow " << leader << std::endl;
-	if(_leader != leader || _state != Following) {
+	if(_leader != leader || _state != Packet::Following) {
 		_since = Time().now();
 	}
 
 	_leader = leader;
-	_state = Following;
+	_state = Packet::Following;
 	_election.clear();
 }
 
 void Controller::propose()
 {
 	std::cout << "Propose" << std::endl;
-	if(_state != Proposing) {
+	if(_state != Packet::Proposing) {
 		_since = Time().now();
 	}
 	_leader = "";
-	_state = Proposing;
+	_state = Packet::Proposing;
 	_election[_self] = _since;
 }
 
 void Controller::lead()
 {
 	std::cout << "Lead" << std::endl;
-	if(_state != Leading) {
+	if(_state != Packet::Leading) {
 		_since = Time().now();
 		_proxy.proxyToLocal();
 	}
 	_leader = _self;
-	_state = Leading;
+	_state = Packet::Leading;
 	_election.clear();
 }
 
@@ -324,27 +246,21 @@ bool Controller::sendTo(const std::string& addr, const std::string& data)
 	return true;
 }
 
-void Controller::packetFor(const std::string& reason, Packet& packet) const
+void Controller::packetFor(Packet::Reason reason, Packet& packet) const
 {
-	const char* states = "APLF";
+	packet.reason(reason);
+	packet.state(_state);
+	packet.since(_since);
+	packet.self(_self);
+	packet.following(_leader);
+	packet.proxy(_proxy.getLocalPort());
 
-	packet.set('e', reason);
-	packet.set('s', states[_state]);
-	packet.set('t', _since);
-	packet.set('a', _self);
-	packet.set('f', _leader);
-	packet.set('r', _proxy.getLocalPort());
-
-	if(_state == Leading) {
+	if(_state == Packet::Leading) {
 		std::string members;
 		std::map<std::string,unsigned long long>::const_iterator it;
 		for(it = _members.begin(); it != _members.end(); ++it) {
-			if(it != _members.begin()) {
-				members += ",";
-			}
-			members += it->first;
+			packet.member(it->first);
 		}
-		packet.set('m', members);
 	}
 }
 
@@ -376,7 +292,7 @@ void Controller::election()
 		lead();
 
 		Packet packet;
-		packetFor("ping", packet);
+		packetFor(Packet::Ping, packet);
 
 		std::map<std::string,unsigned long long>::const_iterator it;
 		for(it = _members.begin(); it != _members.end(); ++it) {

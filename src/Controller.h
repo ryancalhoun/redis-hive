@@ -1,6 +1,7 @@
 #pragma once
 #include "TcpServer.h"
 #include "ITcpServerHandler.h"
+#include "Packet.h"
 
 #include <string>
 #include <map>
@@ -20,22 +21,13 @@ public:
 	int read(TcpSocket& client);
 	int ping();
 
-	enum State
-	{
-		Alone,
-		Proposing,
-		Leading,
-		Following,
-	};
 protected:
-	class Packet;
-
 	void follow(const std::string& leader);
 	void propose();
 	void lead();
 
 	bool sendTo(const std::string& addr, const std::string& data);
-	void packetFor(const std::string& reason, Packet& packet) const;
+	void packetFor(Packet::Reason reason, Packet& packet) const;
 
 	void purge();
 	void election();
@@ -47,7 +39,7 @@ protected:
 	const ICandidateList& _candidates;
 	int _interval;
 
-	State _state;
+	Packet::State _state;
 	unsigned long long _since;
 
 	std::string _self;
