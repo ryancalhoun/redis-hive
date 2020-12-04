@@ -7,7 +7,7 @@ public:
   {
   public:
     virtual ~ICallback() {}
-    virtual int operator()() = 0;
+    virtual void operator()() = 0;
   };
 
   virtual ~IEventBus() {}

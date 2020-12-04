@@ -23,16 +23,25 @@ public:
 
   void shutdown();
   void reset();
-
   void onAccept(const TcpSocket& client);
+
   void copy(TcpSocket& from, TcpSocket& to);
 
-  std::string runCommand(const std::string& command);
+protected:
+  void ping();
+  void pong();
+  void runCommand(const std::string& command);
+
 
 protected:
   TcpServer _server;
+  TcpSocket _redis;
   IEventBus& _eventBus;
-  int _local;
+  const int _local;
+  const int _interval;
+
+  std::string _command;
+  std::string _nextCommand;
 
   std::string _address;
   int _port;

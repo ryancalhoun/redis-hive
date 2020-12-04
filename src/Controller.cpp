@@ -23,14 +23,9 @@ namespace
   class Ping : public IEventBus::ICallback
   {
   public:
-    Ping(Controller& controller)
-      : _controller(controller)
-    {}
+    Ping(Controller& controller) : _controller(controller) {}
+    void operator()() { _controller.ping(); }
 
-    int operator()()
-    {
-      return _controller.ping();
-    }
   protected:
     Controller& _controller;
   };
@@ -43,15 +38,10 @@ namespace
       , _client(client)
     {}
 
-    ~Read()
-    {
-      _client.close();
-    }
+    ~Read() { _client.close(); }
 
-    int operator()()
-    {
-      return _controller.read(_client);
-    }
+    void operator()() { _controller.read(_client); }
+
   protected:
     Controller& _controller;
     TcpSocket _client;

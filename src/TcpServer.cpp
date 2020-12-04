@@ -8,12 +8,8 @@ namespace
   {
   public:
     Accept(TcpServer& server) : _server(server) {}
+    void operator() () { _server.accept(); }
 
-    int operator() ()
-    {
-      _server.accept();
-      return 0;
-    }
   protected:
     TcpServer& _server;
   };

@@ -7,14 +7,23 @@
 
 #include <iostream>
 
-#include <netinet/in.h> 
-#include <unistd.h>
-#include <sys/socket.h> 
-#include <sys/types.h>
-#include <arpa/inet.h>
-
 namespace
 {
+  class Read : public IEventBus::ICallback
+  {
+  public:
+    Read(Proxy& proxy, void (Proxy::*cb)())
+      : _proxy(proxy)
+      , _cb(cb)
+    {}
+
+    void operator()() { (_proxy.*_cb)(); }
+
+  protected:
+    Proxy& _proxy;
+    void (Proxy::*_cb)();
+  };
+
   class Copy : public IEventBus::ICallback
   {
   public:
@@ -24,16 +33,9 @@ namespace
       , _to(to)
     {}
 
-    ~Copy()
-    {
-      _from.close();
-    }
+    ~Copy() { _from.close(); }
+    void operator()() { _proxy.copy(_from, _to); }
 
-    int operator()()
-    {
-      _proxy.copy(_from, _to);
-      return 0;
-    }
   protected:
     Proxy& _proxy;
     TcpSocket _from;
@@ -57,6 +59,7 @@ Proxy::Proxy(IEventBus& eventBus, int port)
   : _server(*this, eventBus)
   , _eventBus(eventBus)
   , _local(port)
+  , _interval(3000)
 {
   proxyToLocal();
 }
@@ -118,6 +121,8 @@ bool Proxy::listen(int port)
     return false;
   }
 
+  _eventBus.every(_interval, new Read(*this, &Proxy::ping));
+
   std::cout << "Proxy listening on port " << port << std::endl;
 
   return true;
@@ -149,35 +154,46 @@ void Proxy::copy(TcpSocket& from, TcpSocket& to)
   }
 }
 
-std::string Proxy::runCommand(const std::string& command)
+void Proxy::ping()
 {
-  struct sockaddr_in redis;
+  runCommand("PING\r\n");
+}
 
-  ::inet_aton("127.0.0.1", &redis.sin_addr);
-  redis.sin_family = AF_INET; 
-  redis.sin_port = htons(_local); 
+void Proxy::pong()
+{
+  char buff[1024] = {0};
+  if(_redis.read(buff, sizeof(buff))) {
+    _command.clear();
+    if(_redis.bytes() == 0) {
+      std::cout << "Redis disconnect" << std::endl;
+      _eventBus.remove(_redis);
+      _redis.close();
+    } else {
+      runCommand(_nextCommand);
+    }
+  }
+}
 
-  int sock = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
-
-  if(::connect(sock, (struct sockaddr*)&redis, sizeof(redis)) != 0) {
-    ::close(sock);
-    return "connect error";
+void Proxy::runCommand(const std::string& command)
+{
+  if(_redis == -1) {
+    if(! _redis.connect("127.0.0.1", _local)) {
+      std::cout << "Redis connect error" << std::endl;
+      return;
+    }
+    _eventBus.add(_redis, new Read(*this, &Proxy::pong));
   }
 
-  ssize_t sent = ::send(sock, command.c_str(), command.size(), 0);
-  if((size_t)sent != command.size()) {
-    ::close(sock);
-    return "send error";
-  }
-
-  char buf[1024] = {0};
-  ssize_t bytes = ::recv(sock, buf, sizeof(buf), 0);
-
-  ::close(sock);
-  if(bytes > 0) {
-    return buf;
+  if(_command.size() == 0) {
+    if(_redis.write(command.c_str(), command.size())) {
+      _command = command;
+      _nextCommand.clear();
+    } else {
+      std::cout << "Redis send error" << std::endl;
+      _redis.close();
+    }
   } else {
-    return "receive error";
+    _nextCommand = command;
   }
 }
 

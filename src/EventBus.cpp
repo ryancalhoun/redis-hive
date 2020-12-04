@@ -32,7 +32,13 @@ void EventBus::add(int fd, ICallback* callback)
   if(::epoll_ctl(_waiter, EPOLL_CTL_ADD, fd, &ev) != 0 && errno == EEXIST) {
     ::epoll_ctl(_waiter, EPOLL_CTL_MOD, fd, &ev);
   }
-  _callback[fd] = callback;
+  std::map<int,ICallback*>::iterator it = _callback.find(fd);
+  if(it == _callback.end()) {
+    _callback[fd] = callback;
+  } else {
+    delete it->second;
+    it->second = callback;
+  }
 }
 
 void EventBus::every(int millis, ICallback* callback)

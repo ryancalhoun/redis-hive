@@ -38,7 +38,7 @@ protected:
   IProxy& _proxy;
   IEventBus& _eventBus;
   const ICandidateList& _candidates;
-  int _interval;
+  const int _interval;
 
   Packet::State _state;
   unsigned long long _since;

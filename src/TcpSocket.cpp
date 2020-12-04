@@ -82,7 +82,7 @@ bool TcpSocket::connect(const std::string& host, int port)
   _fd  = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
   if(::connect(_fd, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
     _ec = errno;
-    ::close(_fd);
+    close();
     return false;
   }
 
@@ -117,8 +117,10 @@ size_t TcpSocket::bytes() const
 
 void TcpSocket::close()
 {
-  ::close(_fd);
-  _fd = -1;
+  if(_fd != -1) {
+    ::close(_fd);
+    _fd = -1;
+  }
 }
 
 
