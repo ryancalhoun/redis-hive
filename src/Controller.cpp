@@ -67,6 +67,7 @@ Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList&
   , _state(Packet::Alone)
   , _since(Time().now())
   , _self(candidates.getSelf())
+  , _expectedCount(0)
 {
   TcpSocket sock;
 }
@@ -159,7 +160,7 @@ int Controller::read(TcpSocket& client)
 
     if(received.reason() == Packet::Ack) {
       if(_state == Packet::Proposing) {
-        if(_members.size() == _election.size()) {
+        if(_election.size() >= _expectedCount) {
           std::cout << "Shortcut election" << std::endl;
           election();
         }
@@ -229,6 +230,7 @@ void Controller::follow(const std::string& leader)
   _leader = leader;
   _state = Packet::Following;
   _election.clear();
+  _expectedCount = 0;
 }
 
 void Controller::propose()
@@ -240,6 +242,7 @@ void Controller::propose()
   _leader = "";
   _state = Packet::Proposing;
   _election[_self] = _since;
+  _expectedCount = _members.size();
 }
 
 void Controller::lead()
@@ -252,6 +255,7 @@ void Controller::lead()
   _leader = _self;
   _state = Packet::Leading;
   _election.clear();
+  _expectedCount = 0;
 }
 
 bool Controller::sendTo(const std::string& addr, const std::string& data)

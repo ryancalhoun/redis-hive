@@ -48,5 +48,6 @@ protected:
 
   std::map<std::string,unsigned long long> _members;
   std::map<std::string,unsigned long long> _election;
+  size_t _expectedCount;
 };
 
