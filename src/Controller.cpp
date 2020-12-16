@@ -193,7 +193,11 @@ int Controller::ping()
     }
 
     if(sent == 0) {
-      propose();
+      if(candidates.size() == 1 && candidates[0] == _self) {
+        election();
+      } else {
+        propose();
+      }
     }
 
     if(_state == Packet::Proposing) {
