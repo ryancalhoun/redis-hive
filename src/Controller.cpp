@@ -123,6 +123,10 @@ int Controller::read(TcpSocket& client)
             }
           }
         }
+      } else if(_leader == received.self() && received.state() == Packet::NotReady) {
+        _members.erase(_leader);
+        propose();
+        broadcast();
       } else {
         // accept the newer
         if(_since < received.since()) {
@@ -321,9 +325,26 @@ void Controller::election()
 
 void Controller::onProxyReady()
 {
+  if(_state == Packet::NotReady) {
+    _state = Packet::Alone;
+    _since = Time().now();
+    broadcast();
+  }
 }
 
 void Controller::onProxyNotReady()
 {
+  std::cout << "Proxy Not Ready" << std::endl;
+  Packet::State previous = _state;
+
+  if(_state != Packet::NotReady) {
+    _state = Packet::NotReady;
+    _since = Time().now();
+  }
+
+  if(previous == Packet::Leading) {
+    _leader.clear();
+    broadcast();
+  }
 }
 

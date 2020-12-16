@@ -33,7 +33,7 @@ namespace
 
 std::string Packet::serialize() const
 {
-  const char* states = "APLF";
+  const char* states = "APLFN";
   std::string data;
   data += "a=" + _self;
   if(_reason == Ping) {
@@ -118,6 +118,8 @@ bool Packet::parse(const std::string& data)
             _state = Leading;
           } else if(val == "F") {
             _state = Following;
+          } else if(val == "N") {
+            _state = NotReady;
           }
         break;
         case 't':

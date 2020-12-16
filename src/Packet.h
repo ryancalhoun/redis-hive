@@ -12,6 +12,7 @@ public:
     Proposing,
     Leading,
     Following,
+    NotReady,
   };
   enum Reason
   {
