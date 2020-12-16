@@ -44,6 +44,9 @@ $(TARGET)_test: $(TESTOBJECTS) $(OBJECTS)
 test:
 	./$(TARGETDIR)/$(TARGET)_test
 
+integration:
+	cd integration; bundle install && bundle exec rspec .
+
 $(BUILDDIR)/src/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 	$(CC) $(CFLAGS) $(INC) -c -o $@ $<
 
@@ -56,4 +59,4 @@ cppunit.tgz:
 cppunit: cppunit.tgz
 	tar zxf cppunit.tgz
 
-.PHONY: all clean test
+.PHONY: all clean test integration
