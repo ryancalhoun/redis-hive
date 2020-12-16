@@ -59,4 +59,4 @@ integration tests:
   - gem install bundler -v 2.1.4
   - bundle install
   script:
-  - bundle exec rspec .
+  - bundle exec rspec . -fd
