@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd $(dirname $0)
+
 N=${1:-3}
 
 for i in $(seq 1 $N); do

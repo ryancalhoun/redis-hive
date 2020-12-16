@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd $(dirname $0)
+
 if [[ $1 == all ]]; then
   for pid in data/redis-*/*.pid; do
     kill $(cat $pid)
