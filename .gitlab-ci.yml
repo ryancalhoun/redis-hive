@@ -56,7 +56,7 @@ integration tests:
   stage: integration
   before_script:
   - cd integration
-  - gem install bundler
+  - gem install bundler -v 2.1.4
   - bundle install
   script:
   - "false"
