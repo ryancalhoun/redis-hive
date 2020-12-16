@@ -60,9 +60,5 @@ integration tests:
   - bundle install
   script:
   - bundle exec rspec . -fd
-  - ../start.sh
-  - ps aufx
-  - ls -lR 
-  - ../stop.sh
 
 
