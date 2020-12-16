@@ -21,6 +21,8 @@ public:
   void proxyToAddress(const std::string& address, int port);
   bool listen(int port);
 
+  void setHandler(IProxyHandler& handler);
+
   void shutdown();
   void reset();
   void onAccept(const TcpSocket& client);
@@ -37,6 +39,7 @@ protected:
   TcpServer _server;
   TcpSocket _redis;
   IEventBus& _eventBus;
+  IProxyHandler* _handler;
   const int _local;
   const int _interval;
 

@@ -1,5 +1,6 @@
 #pragma once
 #include "TcpServer.h"
+#include "IProxyHandler.h"
 #include "ITcpServerHandler.h"
 #include "Packet.h"
 
@@ -10,7 +11,7 @@ class ICandidateList;
 class IProxy;
 class IEventBus;
 
-class Controller : public ITcpServerHandler
+class Controller : public ITcpServerHandler, protected IProxyHandler
 {
 public:
   Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates);
@@ -32,6 +33,9 @@ protected:
   void purge();
   void broadcast();
   void election();
+
+  void onProxyReady();
+  void onProxyNotReady();
 
 protected:
   TcpServer _server;

@@ -1,5 +1,6 @@
 #include "Proxy.h"
 #include "IEventBus.h"
+#include "IProxyHandler.h"
 
 #include <cstdio> 
 #include <cstdlib> 
@@ -58,6 +59,7 @@ namespace
 Proxy::Proxy(IEventBus& eventBus, int port)
   : _server(*this, eventBus)
   , _eventBus(eventBus)
+  , _handler(NULL)
   , _local(port)
   , _interval(3000)
 {
@@ -128,6 +130,11 @@ bool Proxy::listen(int port)
   return true;
 }
 
+void Proxy::setHandler(IProxyHandler& handler)
+{
+  _handler = &handler;
+}
+
 void Proxy::onAccept(const TcpSocket& client)
 {
   TcpSocket sock;
@@ -168,7 +175,12 @@ void Proxy::pong()
       std::cout << "Redis disconnect" << std::endl;
       _eventBus.remove(_redis);
       _redis.close();
+
+      if(_handler) {
+        _handler->onProxyNotReady();
+      }
     } else {
+      _handler->onProxyReady();
       runCommand(_nextCommand);
     }
   }
@@ -179,7 +191,7 @@ void Proxy::runCommand(const std::string& command)
   if(_redis == -1) {
     if(! _redis.connect("127.0.0.1", _local)) {
       std::cout << "Redis connect error" << std::endl;
-      return;
+      return _handler->onProxyNotReady();
     }
     _eventBus.add(_redis, new Read(*this, &Proxy::pong));
   }
@@ -190,7 +202,7 @@ void Proxy::runCommand(const std::string& command)
       _nextCommand.clear();
     } else {
       std::cout << "Redis send error" << std::endl;
-      _redis.close();
+      return _handler->onProxyNotReady();
     }
   } else {
     _nextCommand = command;

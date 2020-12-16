@@ -59,7 +59,7 @@ Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList&
   , _self(candidates.getSelf())
   , _expectedCount(0)
 {
-  TcpSocket sock;
+  _proxy.setHandler(*this);
 }
 
 void Controller::onAccept(const TcpSocket& client)
@@ -317,5 +317,13 @@ void Controller::election()
     lead();
     broadcast();
   }
+}
+
+void Controller::onProxyReady()
+{
+}
+
+void Controller::onProxyNotReady()
+{
 }
 
