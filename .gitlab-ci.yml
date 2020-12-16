@@ -5,6 +5,7 @@ stages:
 - prep
 - build
 - test
+- integration
 
 .TEMPLATE-prep-docker:
   stage: prep
@@ -50,3 +51,12 @@ test:
   script:
   - make test
 
+integration tests:
+  image: $CI_REGISTRY_IMAGE/integration
+  stage: integration
+  before_script:
+  - cd integration
+  - gem install bundler
+  - bundle install
+  script:
+  - "false"
