@@ -326,6 +326,7 @@ void Controller::election()
 void Controller::onProxyReady()
 {
   if(_state == Packet::NotReady) {
+    std::cout << "Proxy Ready" << std::endl;
     _state = Packet::Alone;
     _since = Time().now();
     broadcast();
@@ -334,10 +335,10 @@ void Controller::onProxyReady()
 
 void Controller::onProxyNotReady()
 {
-  std::cout << "Proxy Not Ready" << std::endl;
   Packet::State previous = _state;
 
   if(_state != Packet::NotReady) {
+    std::cout << "Proxy Not Ready" << std::endl;
     _state = Packet::NotReady;
     _since = Time().now();
   }
