@@ -19,6 +19,7 @@ public:
     None,
     Ping,
     Ack,
+    Who,
   };
 
   Packet();

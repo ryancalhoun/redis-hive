@@ -8,6 +8,8 @@ public:
   void testParse();
   void testParseLeader();
 
+  void testWho();
+
   static CppUnit::Test* suite()
   {
     CPPUNIT_DEFINE_SUITE(suite, PacketTest);
@@ -15,6 +17,8 @@ public:
     CPPUNIT_ADD_TEST(suite, testSerializeLeader);
     CPPUNIT_ADD_TEST(suite, testParse);
     CPPUNIT_ADD_TEST(suite, testParseLeader);
+
+    CPPUNIT_ADD_TEST(suite, testWho);
 
     return suite;
   }

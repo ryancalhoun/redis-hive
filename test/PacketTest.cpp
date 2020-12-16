@@ -55,6 +55,14 @@ void PacketTest::testParseLeader()
   assert_equal(2, p.members().size());
   assert_equal("4.4.4.4:4444", p.members()[0]);
   assert_equal("5.5.5.5:5555", p.members()[1]);
-
 }
 
+void PacketTest::testWho()
+{
+  Packet p;
+  assert_true(p.parse("e=who"));
+  assert_equal(Packet::Who, p.reason());
+
+  p.following("1.2.3.4:80");
+  assert_equal("a=|e=who|s=A|f=1.2.3.4:80|r=0|t=0", p.serialize());
+}

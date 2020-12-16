@@ -40,6 +40,8 @@ std::string Packet::serialize() const
     data += "|e=ping";
   } else if(_reason == Ack) {
     data += "|e=ack";
+  } else if(_reason == Who) {
+    data += "|e=who";
   }
   data += "|s=" + std::string(1, states[_state]);
   data += "|f=" + _following;
@@ -53,7 +55,9 @@ std::string Packet::serialize() const
     } else {
       data += ",";
     }
+
     data += *it;
+
   }
 
   return data;
@@ -109,6 +113,8 @@ bool Packet::parse(const std::string& data)
             _reason = Ping;
           } else if(val == "ack") {
             _reason = Ack;
+          } else if(val == "who") {
+            _reason = Who;
           }
         break;
         case 's':

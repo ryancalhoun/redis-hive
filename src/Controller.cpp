@@ -93,7 +93,7 @@ int Controller::read(TcpSocket& client)
     Packet received(buf);
     unsigned long long now = Time().now();
 
-    if(received.self() != _self) {
+    if(received.self() != _self && received.reason() != Packet::Who) {
       _members[received.self()] = now;
     }
 
@@ -149,16 +149,19 @@ int Controller::read(TcpSocket& client)
       std::string reply = ack.serialize();
       client.write(reply.c_str(), reply.size());
       _eventBus.remove(client);
-      std::cout << "ACK " << reply << std::endl;
-    }
-
-    if(received.reason() == Packet::Ack) {
+    } else if(received.reason() == Packet::Ack) {
       if(_state == Packet::Proposing) {
         if(_election.size() >= _expectedCount) {
           std::cout << "Shortcut election" << std::endl;
           election();
         }
       }
+    } else if(received.reason() == Packet::Who) {
+      Packet who;
+      packetFor(Packet::Who, who);
+      std::string reply = who.serialize();
+      client.write(reply.c_str(), reply.size());
+      _eventBus.remove(client);
     }
   }
 
