@@ -193,7 +193,7 @@ void Proxy::runCommand(const std::string& command)
   if(_redis == -1) {
     if(! _redis.connect("127.0.0.1", _local)) {
       std::cout << "Redis connect error" << std::endl;
-      if(_proxy) {
+      if(_handler) {
         _handler->onProxyNotReady();
       }
       return;
@@ -207,7 +207,7 @@ void Proxy::runCommand(const std::string& command)
       _nextCommand.clear();
     } else {
       std::cout << "Redis send error" << std::endl;
-      if(_proxy) {
+      if(_handler) {
         _handler->onProxyNotReady();
       }
       return;
