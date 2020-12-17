@@ -180,7 +180,9 @@ void Proxy::pong()
         _handler->onProxyNotReady();
       }
     } else {
-      _handler->onProxyReady();
+      if(_handler) {
+        _handler->onProxyReady();
+      }
       runCommand(_nextCommand);
     }
   }
@@ -191,7 +193,10 @@ void Proxy::runCommand(const std::string& command)
   if(_redis == -1) {
     if(! _redis.connect("127.0.0.1", _local)) {
       std::cout << "Redis connect error" << std::endl;
-      return _handler->onProxyNotReady();
+      if(_proxy) {
+        _handler->onProxyNotReady();
+      }
+      return;
     }
     _eventBus.add(_redis, new Read(*this, &Proxy::pong));
   }
@@ -202,7 +207,10 @@ void Proxy::runCommand(const std::string& command)
       _nextCommand.clear();
     } else {
       std::cout << "Redis send error" << std::endl;
-      return _handler->onProxyNotReady();
+      if(_proxy) {
+        _handler->onProxyNotReady();
+      }
+      return;
     }
   } else {
     _nextCommand = command;

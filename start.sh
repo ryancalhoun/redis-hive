@@ -18,7 +18,7 @@ for i in $(seq 1 $N); do
 
   if [[ ! -f data/hive-$CONTROL/hive.pid ]] ||
      [[ $(cat /proc/$(cat data/hive-$CONTROL/hive.pid)/comm 2>/dev/null) != redis-hive ]]; then
-    ./bin/redis-hive $REDIS $PROXY $CONTROL $(seq 3001 $(( 3000 + N)) ) > data/hive-$CONTROL/hive.log 2>&1 &
+    ./bin/redis-hive $REDIS $PROXY $CONTROL $(seq 3001 $(( 3000 + N)) ) >> data/hive-$CONTROL/hive.log 2>&1 &
     echo $! > data/hive-$CONTROL/hive.pid
   fi
 done

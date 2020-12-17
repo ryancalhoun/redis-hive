@@ -27,7 +27,7 @@ all: $(TARGETDIR) $(BUILDDIR) $(TARGET) $(TARGET)_test
 -include $(TESTDEP)
 
 clean:
-	rm -rf $(BUILDDIR) $(TARGETDIR)
+	rm -rf $(BUILDDIR) $(TARGETDIR) data
 
 $(TARGETDIR):
 	@mkdir -p $(TARGETDIR)
