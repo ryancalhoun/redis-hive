@@ -87,7 +87,7 @@ void Proxy::proxyToLocal()
   _address = "127.0.0.1";
   _port = _local;
 
-  runCommand("REPLICAOF NO ONE\r\n");;
+  runCommand("SLAVEOF NO ONE\r\n");;
 }
 
 void Proxy::proxyToAddress(const std::string& address, int port)
@@ -98,7 +98,7 @@ void Proxy::proxyToAddress(const std::string& address, int port)
     _address = address;
     _port = port;
 
-    runCommand("REPLICAOF " + _address + " " + ::to_s(_port) + "\r\n");
+    runCommand("SLAVEOF " + _address + " " + ::to_s(_port) + "\r\n");
   }
 }
 
