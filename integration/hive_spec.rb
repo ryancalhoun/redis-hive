@@ -36,5 +36,12 @@ describe 'redis-hive' do
         expect(info['tcp_port']).to eq leader_redis_port
       end
     end
+
+    describe 'lose a worker' do
+      describe 'node' do
+      end
+      describe 'redis' do
+      end
+    end
   end
 end
