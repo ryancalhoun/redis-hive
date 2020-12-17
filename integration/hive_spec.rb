@@ -38,9 +38,32 @@ describe 'redis-hive' do
     end
 
     describe 'lose a worker' do
+      let(:lost) { ([1, 2, 3] - [hive.leader[-1].to_i]).first }
+      before(:each) do
+        hive.proxy_redis_command("set foo 42")
+      end
       describe 'node' do
+        it 'all redis replicas are working' do
+          hive.stop(node: [lost])
+
+          (1..workers).each do |i|
+            expect(hive.direct_redis_command("get foo", i)).to eq ["42\n"]
+          end
+        end
       end
       describe 'redis' do
+        it 'the replica is gone' do
+          hive.stop(redis: [lost])
+
+          expect(hive.direct_redis_command("get foo", lost)).to eq []
+        end
+        it 'all remaining replicas are working' do
+          hive.stop(redis: [lost])
+
+          ((1..workers).to_a - [lost]).each do |i|
+            expect(hive.direct_redis_command("get foo", i)).to eq ["42\n"]
+          end
+        end
       end
     end
   end
