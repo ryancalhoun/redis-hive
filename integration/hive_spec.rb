@@ -13,20 +13,28 @@ describe 'redis-hive' do
     let(:workers) { 1 }
 
     it 'is its own leader' do
-      expect(hive.who).to eq '127.0.0.1:3001'
+      expect(hive.leader).to eq '127.0.0.1:3001'
     end
     it 'proxies to its own redis' do
-      expect(hive.proxy('info').grep(/role:/)).to eq ["role:master\r\n"]
+      expect(hive.redis_info['role']).to eq 'master'
     end
   end
   describe 'three nodes' do
-    let(:workers) { 1 }
+    let(:workers) { 3 }
 
-    it 'is has a leader' do
-      expect(%w(127.0.0.1:3001 127.0.0.1:3002 127.0.0.1:3003)).to include hive.who
+    it 'has three nodes' do
+      expect(hive.who.values.size).to eq workers
     end
-    it 'proxies to redis master' do
-      expect(hive.proxy('info').grep(/role:/)).to eq ["role:master\r\n"]
+    it 'has a leader' do
+      expect(%w(127.0.0.1:3001 127.0.0.1:3002 127.0.0.1:3003)).to include hive.leader
+    end
+    it 'all nodes proxy to redis master' do
+      leader_redis_port = hive.leader.split(':').last.sub('3', '6')
+      (1..workers).each do |i|
+        info = hive.redis_info i
+        expect(info['role']).to eq 'master'
+        expect(info['tcp_port']).to eq leader_redis_port
+      end
     end
   end
 end
