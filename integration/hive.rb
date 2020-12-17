@@ -28,20 +28,14 @@ class Hive
 
       t1 = Time.now
       if t1 - t0 > 10 
-        system "ps aufx"
-        system "cat ../data/hive-*/hive.log"
         raise Timeout::Error.new("Expired after #{t1-t0} seconds. Nodes: #{
             @who.values.map {|m| "#{m['a']}/#{m['s']}"}.join(", ")}. Redis replicas: #{
             redis_info['connected_slaves']}.")
       end
 
-      #break if
-      if
+      break if
         @who.values.select {|m| %w(L F).include? m['s']}.size == @n &&
         redis_info['connected_slaves'].to_i == @n - 1
-        puts t1-t0
-        break
-      end
 
       sleep 0.1
     end

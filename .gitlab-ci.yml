@@ -59,5 +59,9 @@ integration tests:
   - bundle install
   script:
   - bundle exec rspec . -fd
+  artifacts:
+    paths:
+    - data
+    expire_in: 1 hour
 
 
