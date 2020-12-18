@@ -79,7 +79,7 @@ bool TcpSocket::connect(const std::string& host, int port)
   ::inet_aton(host.c_str(), &addr.sin_addr);
   addr.sin_port = htons(port); 
 
-  _fd  = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
+  _fd = ::socket(AF_INET, SOCK_STREAM|SOCK_CLOEXEC, 0);
   if(::connect(_fd, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
     _ec = errno;
     close();

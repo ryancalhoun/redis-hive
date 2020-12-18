@@ -27,7 +27,7 @@ class Hive
       _who
 
       t1 = Time.now
-      if t1 - t0 > 10 
+      if t1 - t0 > 10
         raise Timeout::Error.new("Expired after #{t1-t0} seconds. Nodes: #{
             @who.values.map {|m| "#{m['a']}/#{m['s']}"}.join(", ")}. Redis replicas: #{
             redis_info['connected_slaves']}.")
@@ -65,21 +65,25 @@ class Hive
     @who.clear
     (1..@n).each do |i|
       begin
-        s = TCPSocket.new 'localhost', 3000 + i
-        s.write 'e=who'
-        data = s.read
-        s.close
-
-        info = {}
-        data.split('|').each do |part|
-          a,b = part.split('=')
-          info[a] = b
-        end
+        info = direct_who(i)
         @who[info['a']] = info
       rescue
       end
     end
     @who
+  end
+  def direct_who(i)
+    s = TCPSocket.new 'localhost', 3000 + i
+    s.write 'e=who'
+    data = s.read
+    s.close
+
+    info = {}
+    data.split('|').each do |part|
+      a,b = part.split('=')
+      info[a] = b
+    end
+    info
   end
 end
 

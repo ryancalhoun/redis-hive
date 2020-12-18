@@ -62,6 +62,7 @@ Proxy::Proxy(IEventBus& eventBus, int port)
   , _handler(NULL)
   , _local(port)
   , _interval(3000)
+  , _alone(true)
 {
   proxyToLocal();
 }
@@ -88,6 +89,7 @@ void Proxy::proxyToLocal()
   _port = _local;
 
   runCommand("SLAVEOF NO ONE\r\n");;
+  _alone = true;
 }
 
 void Proxy::proxyToAddress(const std::string& address, int port)
@@ -97,8 +99,12 @@ void Proxy::proxyToAddress(const std::string& address, int port)
 
     _address = address;
     _port = port;
+  }
 
+  std::cout << "Proxy to Address " << port << " " << (_alone ? "alone": "following") << std::endl;
+  if(_alone) {
     runCommand("SLAVEOF " + _address + " " + ::to_s(_port) + "\r\n");
+    _alone = false;
   }
 }
 
@@ -115,6 +121,8 @@ void Proxy::reset()
     }
     _connections.erase(it);
   }
+
+  _alone = true;
 }
 
 bool Proxy::listen(int port)
@@ -173,16 +181,9 @@ void Proxy::pong()
     _command.clear();
     if(_redis.bytes() == 0) {
       std::cout << "Redis disconnect" << std::endl;
-      _eventBus.remove(_redis);
-      _redis.close();
-
-      if(_handler) {
-        _handler->onProxyNotReady();
-      }
+      notReady();
     } else {
-      if(_handler) {
-        _handler->onProxyReady();
-      }
+      ready();
       runCommand(_nextCommand);
     }
   }
@@ -193,10 +194,7 @@ void Proxy::runCommand(const std::string& command)
   if(_redis == -1) {
     if(! _redis.connect("127.0.0.1", _local)) {
       std::cout << "Redis connect error" << std::endl;
-      if(_handler) {
-        _handler->onProxyNotReady();
-      }
-      return;
+      return notReady();
     }
     _eventBus.add(_redis, new Read(*this, &Proxy::pong));
   }
@@ -207,13 +205,30 @@ void Proxy::runCommand(const std::string& command)
       _nextCommand.clear();
     } else {
       std::cout << "Redis send error" << std::endl;
-      if(_handler) {
-        _handler->onProxyNotReady();
-      }
-      return;
+      return notReady();
     }
   } else {
     _nextCommand = command;
+  }
+}
+
+void Proxy::ready()
+{
+  if(_handler) {
+    _handler->onProxyReady();
+  }
+}
+
+void Proxy::notReady()
+{
+  _alone = true;
+  if(_redis != -1) {
+    _eventBus.remove(_redis);
+    _redis.close();
+  }
+
+  if(_handler) {
+    _handler->onProxyNotReady();
   }
 }
 

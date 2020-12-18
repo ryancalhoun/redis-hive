@@ -107,7 +107,9 @@ int Controller::read(TcpSocket& client)
       if(received.following().size() == 0) {
         propose();
       } else {
-        follow(received.following());
+        if(received.following() != _missing) {
+          follow(received.following());
+        }
       }
 
     } else if(_state == Packet::Following) {
@@ -229,6 +231,7 @@ void Controller::follow(const std::string& leader)
   }
 
   _leader = leader;
+  _missing.clear();
   _state = Packet::Following;
   _election.clear();
   _expectedCount = 0;
@@ -239,6 +242,9 @@ void Controller::propose()
   std::cout << "Propose" << std::endl;
   if(_state != Packet::Proposing) {
     _since = Time().now();
+  }
+  if(_leader.size() > 0) {
+      _missing = _leader;
   }
   _leader = "";
   _state = Packet::Proposing;
@@ -254,6 +260,7 @@ void Controller::lead()
     _proxy.proxyToLocal();
   }
   _leader = _self;
+  _missing.clear();
   _state = Packet::Leading;
   _election.clear();
   _expectedCount = 0;

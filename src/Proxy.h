@@ -33,7 +33,8 @@ protected:
   void ping();
   void pong();
   void runCommand(const std::string& command);
-
+  void ready();
+  void notReady();
 
 protected:
   TcpServer _server;
@@ -48,6 +49,7 @@ protected:
 
   std::string _address;
   int _port;
+  bool _alone;
 
   std::map<std::string, std::set<int> > _connections;
 };
