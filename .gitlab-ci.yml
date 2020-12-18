@@ -6,6 +6,7 @@ stages:
 - build
 - test
 - integration
+- package
 
 .TEMPLATE-prep-docker:
   stage: prep
@@ -61,4 +62,17 @@ integration tests:
     - data
     expire_in: 1 hour
 
+docker build:
+  stage: package
+  dependencies:
+  - build
+  image: docker:dind
+  services:
+    - name: docker:dind
+
+  script:
+  - docker login $CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD  
+  - docker pull $CI_REGISTRY_IMAGE:latest || echo Not built yet
+  - docker build -t $CI_REGISTRY_IMAGE --cache-from $CI_REGISTRY_IMAGE:latest .
+  - docker push $CI_REGISTRY_IMAGE
 
