@@ -41,14 +41,14 @@ describe 'redis-hive' do
     describe 'lose a worker' do
       let(:lost) { ([1, 2, 3] - [hive.leader[-1].to_i]).first }
       before(:each) do
-        hive.proxy_redis_command("set foo 42")
+        hive.proxy_redis_command("set", "foo", 42)
       end
       describe 'node' do
         it 'all redis replicas are working' do
           hive.stop(node: [lost])
 
           (1..workers).each do |i|
-            expect(hive.direct_redis_command("get foo", i)).to eq ["42\n"]
+            expect(hive.direct_redis_command("get", "foo", i: i)).to eq "42"
           end
         end
       end
@@ -56,12 +56,12 @@ describe 'redis-hive' do
         it 'the replica is gone' do
           hive.stop(redis: [lost])
 
-          expect(hive.direct_redis_command("get foo", lost)).to eq []
+          expect { hive.direct_redis_command("get", "foo", i: lost) }.to raise_error Redis::CannotConnectError
 
           hive.start!
 
           Timeout::timeout(5) do 
-            until hive.direct_redis_command("get foo", lost) == ["42\n"]
+            until hive.direct_redis_command("get", "foo", i: lost) == "42"
               sleep 0.5
             end
           end
@@ -70,7 +70,7 @@ describe 'redis-hive' do
           hive.stop(redis: [lost])
 
           ((1..workers).to_a - [lost]).each do |i|
-            expect(hive.direct_redis_command("get foo", i)).to eq ["42\n"]
+            expect(hive.direct_redis_command("get", "foo", i: i)).to eq "42"
           end
         end
       end
@@ -78,7 +78,7 @@ describe 'redis-hive' do
     describe 'lose a leader' do
       let(:leader) { hive.leader[-1].to_i }
       before(:each) do
-        hive.proxy_redis_command("set foo 42")
+        hive.proxy_redis_command("set", "foo", 42)
       end
       describe 'node' do
         it 'elects a new leader' do
@@ -99,32 +99,32 @@ describe 'redis-hive' do
           hive.stop(node: [leader])
 
           (1..workers).each do |i|
-            expect(hive.direct_redis_command("get foo", i)).to eq ["42\n"]
+            expect(hive.direct_redis_command("get", "foo", i: i)).to eq "42"
           end
         end
       end
       describe 'redis' do
         it 'elects a new leader' do
-          expect(hive.direct_redis_command("info", leader).grep(/role:/)).to eq ["role:master\r\n"]
+          expect(hive.direct_redis_command("info", i: leader)['role']).to eq "master"
           hive.stop(redis: [leader])
 
-          expect(hive.direct_redis_command("get foo", leader)).to eq []
+          expect { hive.direct_redis_command("get", "foo", i: leader) }.to raise_error Redis::CannotConnectError
 
           hive.start!
 
           Timeout::timeout(5) do
-            until hive.direct_redis_command("info", leader).grep(/role:/) == ["role:slave\r\n"]
+            until hive.direct_redis_command("info", i: leader)['role'] == "slave"
               sleep 0.5
             end
           end
 
-          expect(hive.direct_redis_command("get foo", leader)).to eq ["42\n"]
+          expect(hive.direct_redis_command("get", "foo", i: leader)).to eq "42"
         end
         it 'all remaining replicas are working' do
           hive.stop(redis: [leader])
 
           ((1..workers).to_a - [leader]).each do |i|
-            expect(hive.direct_redis_command("get foo", i)).to eq ["42\n"]
+            expect(hive.direct_redis_command("get", "foo", i: i)).to eq "42"
           end
         end
       end

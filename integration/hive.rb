@@ -1,3 +1,4 @@
+require 'redis'
 require 'socket'
 require 'timeout'
 
@@ -48,18 +49,20 @@ class Hive
     wait
     @who.values.map {|m| m['f']}.first
   end
-  def proxy_redis_command(cmd, i=1)
-    IO.popen("redis-cli -p #{7000 + i} #{cmd}") do |cli|
-      cli.readlines
-    end
+  def _redis(cmd, *args, port:)
+    redis = Redis.new port: port
+    return redis.method(cmd).call *args
+  ensure
+    redis.close
   end
-  def direct_redis_command(cmd, i)
-    IO.popen("redis-cli -p #{6000 + i} #{cmd}") do |cli|
-      cli.readlines
-    end
+  def proxy_redis_command(cmd, *args, i: 1)
+    _redis cmd, *args, port: 7000 + i
+  end
+  def direct_redis_command(cmd, *args, i: 1)
+    _redis cmd, *args, port: 6000 + i
   end
   def redis_info(i=1)
-    Hash[*proxy_redis_command('info', i).grep(/\w+:/).map {|s| s.chomp.split(':')}.flatten]
+    proxy_redis_command('info', i: i)
   end
   def _who
     @who.clear
