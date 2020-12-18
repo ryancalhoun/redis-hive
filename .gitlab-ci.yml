@@ -54,11 +54,8 @@ test:
 integration tests:
   image: $CI_REGISTRY_IMAGE/integration
   stage: integration
-  before_script:
-  - cd integration
-  - bundle install
   script:
-  - bundle exec rspec . -fd
+  - make integration
   artifacts:
     paths:
     - data

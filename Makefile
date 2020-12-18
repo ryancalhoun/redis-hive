@@ -45,6 +45,7 @@ test:
 	./$(TARGETDIR)/$(TARGET)_test
 
 integration:
+	rm -rf data
 	cd integration; bundle install && bundle exec rspec . -fd
 
 $(BUILDDIR)/src/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
