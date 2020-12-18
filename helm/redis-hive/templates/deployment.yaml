@@ -1,0 +1,31 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicas }}
+
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+
+    spec:
+      containers:
+      - image: {{ .Values.hive.image }}
+        args: ["6379", "7000", "3000"]
+        name: hive
+        ports:
+        - containerPort: 3000
+        - containerPort: 7000
+
+      - image: {{ .Values.redis.image }}
+        name: redis
+        ports:
+        - containerPort: 6379
+

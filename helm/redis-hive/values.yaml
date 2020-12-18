@@ -1,0 +1,6 @@
+---
+replicas: 3
+hive:
+  image: registry.gitlab.com/leftoverbytes/redis-hive
+redis:
+  image: redis:5-alpine
