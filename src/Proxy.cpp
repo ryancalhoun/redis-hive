@@ -101,7 +101,6 @@ void Proxy::proxyToAddress(const std::string& address, int port)
     _port = port;
   }
 
-  std::cout << "Proxy to Address " << port << " " << (_alone ? "alone": "following") << std::endl;
   if(_alone) {
     runCommand("SLAVEOF " + _address + " " + ::to_s(_port) + "\r\n");
     _alone = false;

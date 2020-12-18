@@ -49,9 +49,9 @@ protected:
 
   std::string _self;
   std::string _leader;
-  std::string _missing;
 
   std::map<std::string,unsigned long long> _members;
+  std::map<std::string,unsigned long long> _missing;
   std::map<std::string,unsigned long long> _election;
   size_t _expectedCount;
 };

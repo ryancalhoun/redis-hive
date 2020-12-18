@@ -107,7 +107,7 @@ int Controller::read(TcpSocket& client)
       if(received.following().size() == 0) {
         propose();
       } else {
-        if(received.following() != _missing) {
+        if(_missing.find(received.following()) == _missing.end()) {
           follow(received.following());
         }
       }
@@ -240,14 +240,18 @@ void Controller::follow(const std::string& leader)
 void Controller::propose()
 {
   std::cout << "Propose" << std::endl;
+  unsigned long long now = Time().now();
+
   if(_state != Packet::Proposing) {
-    _since = Time().now();
+    _since = now;
   }
   if(_leader.size() > 0) {
-      _missing = _leader;
+    _missing[_leader] = now;
+    _leader.clear();
   }
-  _leader = "";
+
   _state = Packet::Proposing;
+
   _election[_self] = _since;
   _expectedCount = _members.size();
 }
@@ -259,9 +263,10 @@ void Controller::lead()
     _since = Time().now();
     _proxy.proxyToLocal();
   }
+  _state = Packet::Leading;
+
   _leader = _self;
   _missing.clear();
-  _state = Packet::Leading;
   _election.clear();
   _expectedCount = 0;
 }
@@ -296,18 +301,27 @@ void Controller::packetFor(Packet::Reason reason, Packet& packet) const
   }
 }
 
-void Controller::purge()
+namespace
 {
-  unsigned long long now = Time().now();
+  void purge(std::map<std::string,unsigned long long>& v, int limit)
+  {
+    unsigned long long now = Time().now();
 
-  std::map<std::string,unsigned long long>::iterator it;
-  for(it = _members.begin(); it != _members.end();) {
-    if((int)(now - it->second) > _interval * 5) {
-      _members.erase(it++);
-    } else {
-      ++it;
+    std::map<std::string,unsigned long long>::iterator it;
+    for(it = v.begin(); it != v.end();) {
+      if((int)(now - it->second) > limit) {
+        v.erase(it++);
+      } else {
+        ++it;
+      }
     }
   }
+}
+
+void Controller::purge()
+{
+  ::purge(_members, _interval * 5);
+  ::purge(_missing, _interval * 5);
 }
 
 void Controller::broadcast()
