@@ -7,8 +7,8 @@ void DnsLookupTest::testLocalhost()
   std::vector<std::string> ips;
 
   assert_true(dns.lookup("localhost", ips));
-//  assert_equal(1, ips.size());
-  assert_equal("127.0.0.1", ips[0] + " " + ips[1]);
+  assert_greater_equal((size_t)1, ips.size());
+  assert_equal("127.0.0.1", ips[0]);
 }
 
 void DnsLookupTest::testInvalid()
