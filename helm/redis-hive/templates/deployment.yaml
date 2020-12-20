@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - image: {{ .Values.hive.image }}
-        args: ["6379", "7000", "3000"]
+        args: ["-o", "{{ .Release.Name }}-headless"]
         name: hive
         ports:
         - containerPort: 3000
