@@ -1,30 +1,10 @@
-#include "Controller.h"
-#include "Proxy.h"
-#include "EventBus.h"
-
-#include "LocalhostCandidateList.h"
-
-#include <iostream>
+#include "Application.h"
 
 int main(int argc, const char* argv[])
 {
-  if(argc < 4) {
-    std::cout << "usage " << argv[0] << " REDIS PROXY CONTROLLER [PEER...]" << std::endl;
-    exit(0);
+  Application app;
+  if(! app.parse(argc, argv)) {
+    return 1;
   }
-
-  EventBus eventBus;
-  Proxy proxy(eventBus, atoi(argv[1]));
-  LocalhostCandidateList candidates(atoi(argv[3]));
-
-  Controller controller(proxy, eventBus, candidates);
-
-  proxy.listen(atoi(argv[2]));
-  controller.listen(atoi(argv[3]));
-
-  for(int i = 4; i < argc; ++i) {
-    candidates.add(atoi(argv[i]));
-  }
-
-  eventBus.run();
+  return app.run();
 }

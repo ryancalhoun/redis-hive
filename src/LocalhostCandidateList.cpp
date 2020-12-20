@@ -1,4 +1,5 @@
 #include "LocalhostCandidateList.h"
+
 #include <cstdio>
 #include <cstring>
 
@@ -25,7 +26,7 @@ void LocalhostCandidateList::add(int port)
   _list.push_back(addr(port));
 }
 
-std::string LocalhostCandidateList::getSelf() const
+const std::string& LocalhostCandidateList::getSelf() const
 {
   return _self;
 }

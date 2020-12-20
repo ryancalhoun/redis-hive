@@ -2,17 +2,20 @@
 
 #include "ICandidateList.h"
 
-class LocalhostCandidateList : public ICandidateList
+class DnsCandidateList : public ICandidateList
 {
 public:
-  LocalhostCandidateList(int self);
-
-  void add(int port);
+  DnsCandidateList(const std::string& dnsName, int port);
 
   const std::string& getSelf() const;
   std::vector<std::string> getCandidates() const;
 
 protected:
+  void findSelf();
+
+protected:
   std::string _self;
-  std::vector<std::string> _list;
+  std::string _dnsName;
+  int _port;
 };
+
