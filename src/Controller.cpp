@@ -107,7 +107,13 @@ int Controller::read(TcpSocket& client)
       if(received.following().size() == 0) {
         propose();
       } else {
-        if(_missing.find(received.following()) == _missing.end()) {
+        if(received.following() == _self) {
+          if(_since < received.since()) {
+            _since = received.since() + 1;
+          }
+        }
+
+        else if(_missing.find(received.following()) == _missing.end()) {
           follow(received.following());
         }
       }
@@ -125,7 +131,7 @@ int Controller::read(TcpSocket& client)
             }
           }
         }
-      } else if(_leader == received.self() && received.state() == Packet::NotReady) {
+      } else if(_leader == received.self() && received.state() != Packet::Leading) {
         _members.erase(_leader);
         propose();
         broadcast();
