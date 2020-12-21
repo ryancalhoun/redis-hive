@@ -1,5 +1,5 @@
 #include "EventBus.h"
-#include "Time.h"
+#include "ITimeMachine.h"
 
 #include <sys/epoll.h>
 #include <unistd.h>
@@ -7,8 +7,9 @@
 #include <errno.h>
 #include <iostream>
 
-EventBus::EventBus()
-  : _waiter(::epoll_create(1))
+EventBus::EventBus(const ITimeMachine& timeMachine)
+  : _timeMachine(timeMachine)
+  , _waiter(::epoll_create(1))
 {
 }
 
@@ -66,7 +67,7 @@ void EventBus::run()
 
 void EventBus::scheduled()
 {
-  unsigned long long now = Time().now();
+  unsigned long long now = _timeMachine.now();
   std::vector<Schedule>::iterator it;
   for(it = _schedule.begin(); it != _schedule.end(); ++it) {
     if(it->last == 0 || (int)(now - it->last) >= it->millis) {
@@ -93,7 +94,7 @@ void EventBus::next()
 int EventBus::timeout() const
 {
   int min = -1;
-  unsigned long long now = Time().now();
+  unsigned long long now = _timeMachine.now();
   std::vector<Schedule>::const_iterator it;
   for(it = _schedule.begin(); it != _schedule.end(); ++it) {
     int next = it->millis;

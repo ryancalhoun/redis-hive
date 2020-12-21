@@ -2,7 +2,7 @@
 #include "ICandidateList.h"
 #include "IMembershipHandler.h"
 #include "IProxy.h"
-#include "Time.h"
+#include "ITimeMachine.h"
 
 #include <cstdio> 
 #include <cstdlib> 
@@ -11,13 +11,14 @@
 #include <algorithm>
 #include <iostream>
 
-Membership::Membership(IMembershipHandler& handler, IProxy& proxy, const ICandidateList& candidates)
+Membership::Membership(IMembershipHandler& handler, IProxy& proxy, const ICandidateList& candidates, const ITimeMachine& timeMachine)
   : _handler(handler)
   , _proxy(proxy)
   , _candidates(candidates)
+  , _timeMachine(timeMachine)
   , _interval(5000)
   , _state(Packet::Alone)
-  , _since(Time().now())
+  , _since(_timeMachine.now())
   , _self(candidates.getSelf())
   , _expectedCount(0)
 {
@@ -26,7 +27,7 @@ Membership::Membership(IMembershipHandler& handler, IProxy& proxy, const ICandid
 
 void Membership::onRead(const Packet& received)
 {
-  unsigned long long now = Time().now();
+  unsigned long long now = _timeMachine.now();
 
   if(received.self() != _self && received.reason() != Packet::Who) {
     _members[received.self()] = now;
@@ -114,7 +115,7 @@ void Membership::onTimer()
   Packet packet;
   packetFor(Packet::Ping, packet);
 
-  unsigned long long now = Time().now();
+  unsigned long long now = _timeMachine.now();
 
   if(_state == Packet::Alone || _state == Packet::Proposing) {
     std::vector<std::string> candidates = _candidates.getCandidates();
@@ -162,7 +163,7 @@ void Membership::follow(const std::string& leader)
 {
   std::cout << "Follow " << leader << std::endl;
   if(_leader != leader || _state != Packet::Following) {
-    _since = Time().now();
+    _since = _timeMachine.now();
   }
 
   _leader = leader;
@@ -175,7 +176,7 @@ void Membership::follow(const std::string& leader)
 void Membership::propose()
 {
   std::cout << "Propose" << std::endl;
-  unsigned long long now = Time().now();
+  unsigned long long now = _timeMachine.now();
 
   if(_state != Packet::Proposing) {
     _since = now;
@@ -195,7 +196,7 @@ void Membership::lead()
 {
   std::cout << "Lead" << std::endl;
   if(_state != Packet::Leading) {
-    _since = Time().now();
+    _since = _timeMachine.now();
     _proxy.proxyToLocal();
   }
   _state = Packet::Leading;
@@ -226,10 +227,8 @@ void Membership::packetFor(Packet::Reason reason, Packet& packet) const
 
 namespace
 {
-  void purge(std::map<std::string,unsigned long long>& v, int limit)
+  void purge(std::map<std::string,unsigned long long>& v, int limit, unsigned long long now)
   {
-    unsigned long long now = Time().now();
-
     std::map<std::string,unsigned long long>::iterator it;
     for(it = v.begin(); it != v.end();) {
       if((int)(now - it->second) > limit) {
@@ -243,8 +242,8 @@ namespace
 
 void Membership::purge()
 {
-  ::purge(_members, _interval * 5);
-  ::purge(_missing, _interval * 5);
+  ::purge(_members, _interval * 5, _timeMachine.now());
+  ::purge(_missing, _interval * 5, _timeMachine.now());
 }
 
 void Membership::broadcast()
@@ -279,7 +278,7 @@ void Membership::onProxyReady()
   if(_state == Packet::NotReady) {
     std::cout << "Proxy Ready" << std::endl;
     _state = Packet::Alone;
-    _since = Time().now();
+    _since = _timeMachine.now();
     broadcast();
   }
 }
@@ -291,7 +290,7 @@ void Membership::onProxyNotReady()
   if(_state != Packet::NotReady) {
     std::cout << "Proxy Not Ready" << std::endl;
     _state = Packet::NotReady;
-    _since = Time().now();
+    _since = _timeMachine.now();
   }
 
   if(previous == Packet::Leading) {

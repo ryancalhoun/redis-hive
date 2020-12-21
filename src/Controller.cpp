@@ -34,9 +34,9 @@ namespace
   };
 }
 
-Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates)
+Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates, const ITimeMachine& timeMachine)
   : _server(*this, eventBus)
-  , _membership(*this, proxy, candidates)
+  , _membership(*this, proxy, candidates, timeMachine)
   , _eventBus(eventBus)
   , _interval(5000)
   , _currentClient(NULL)

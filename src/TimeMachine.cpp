@@ -1,8 +1,8 @@
-#include "Time.h"
+#include "TimeMachine.h"
 #include <sys/time.h>
 #include <cstddef>
 
-unsigned long long Time::now() const
+unsigned long long TimeMachine::now() const
 {
   struct timeval tv;
   gettimeofday(&tv, NULL);

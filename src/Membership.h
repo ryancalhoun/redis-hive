@@ -8,11 +8,12 @@
 class ICandidateList;
 class IMembershipHandler;
 class IProxy;
+class ITimeMachine;
 
 class Membership : protected IProxyHandler
 {
 public:
-  Membership(IMembershipHandler& handler, IProxy& proxy, const ICandidateList& candidates);
+  Membership(IMembershipHandler& handler, IProxy& proxy, const ICandidateList& candidates, const ITimeMachine& timeMachine);
 
   void onRead(const Packet& received);
   void onTimer();
@@ -35,6 +36,7 @@ protected:
   IMembershipHandler& _handler;
   IProxy& _proxy;
   const ICandidateList& _candidates;
+  const ITimeMachine& _timeMachine;
   const int _interval;
 
   Packet::State _state;

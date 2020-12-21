@@ -8,13 +8,14 @@
 #include <string>
 
 class ICandidateList;
-class IProxy;
 class IEventBus;
+class IProxy;
+class ITimeMachine;
 
 class Controller : public ITcpServerHandler, protected IMembershipHandler
 {
 public:
-  Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates);
+  Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates, const ITimeMachine& timeMachine);
 
   bool listen(int port);
   void onAccept(const TcpSocket& client);

@@ -4,6 +4,7 @@
 #include "Proxy.h"
 #include "LocalhostCandidateList.h"
 #include "DnsCandidateList.h"
+#include "TimeMachine.h"
 
 #include <iostream>
 #include <memory>
@@ -64,9 +65,10 @@ int Application::run()
     std::cout << " c = " << *it << std::endl;
   }
 
-  EventBus eventBus;
+  TimeMachine timeMachine;
+  EventBus eventBus(timeMachine);
   Proxy proxy(eventBus, _redisPort);
-  Controller controller(proxy, eventBus, *candidates);
+  Controller controller(proxy, eventBus, *candidates, timeMachine);
 
   if(! proxy.listen(_proxyPort)) {
     return 1;
