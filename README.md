@@ -10,11 +10,36 @@ The goals of Redis Hive are to
 
 ## Motivation
 
-The typical helm deployment of redis requires persistence to prevent data loss. One pattern is for the redis master and replicas
-are separate statefulsets with separate service names. The replicas exist only to spread the load for reads. A lost master may
-incur brief downtime for writes, but the use of a PVC will allow the restarted master to continue with the dataset.
+The typical helm deployment of redis requires persistence to prevent data loss.
 
-Another pattern is the use of redis-sentinel. While a sentinel cluster is an effective way to elect a new master in general, there
+#### Master/Replica
+One pattern is for the redis master and replicas are separate statefulsets with separate service names.
+
+```mermaid
+graph TD;
+  s(master-service)-->m[redis-master];
+  r(replica-service)-->replica-1;
+  r-->replica-2;
+  r-->replica-3;
+
+  m---p1[(PVC)]
+```
+The replicas exist only to spread the load for reads. A lost master may incur brief downtime for writes, but the use of a PVC will allow the restarted master to continue with the dataset. This pattern works, so long as using PVCs is possible in your Kubernetes environment. Without persistence, the restarted master will overwrite all the replicas with empty data.
+
+
+#### Sentinel
+Another pattern is the use of redis-sentinel.
+```mermaid
+graph TD;
+  r(redis-service)-->r1[replica-1<br>sentinel-1]
+  r-->r2[replica-2<br>sentinel-2]
+  r-->r3[replica-3<br>sentinel-3]
+
+  r1---p1[(PVC)]
+  r2---p2[(PVC)]
+  r3---p3[(PVC)]
+```
+While a sentinel cluster is an effective way to elect a new master in general, there
 are a few issues when deployed in Kubernetes. Namely, the sentinel cluster must retain its quorum when the redis master goes down
 in order to elect a new master; that same quorum must remain intact when the lost master is restarted so it can become a replica
 under the new. However, the fact that the sentinels are run in a sidecar container means that a pod restart will result in a redis
@@ -22,7 +47,20 @@ and a sentinel at the same time. This can cause the sentinel cluster to lose its
 masters or no masters. This means the only safe way to restart or upgrade redis is to administratively scale the statefulset down
 to one first. A lost Kubernetes node can split the cluster.
 
+
+
 ## Approach
+
+```mermaid
+graph TD;
+  p(master-service)-->h1[redis-1<br>hive-1];
+  p-->h2[redis-2<br>hive-2];
+  p-->h3[redis-3<br>hive-3];
+
+  r(replica-service)-->h1;
+  r-->h2;
+  r-->h3;
+```
 
 To avoid the need to a quorum, Redis Hive requires a well-known means of determining hive candidates. In Kubernetes, this is a
 DNS lookup on a headless service. Any hive instance that starts up in a new pod will be able to discover the current hive
