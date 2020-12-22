@@ -48,7 +48,6 @@ void Membership::onRead(const Packet& received)
           _since = received.since() + 1;
         }
       }
-
       else if(_missing.find(received.following()) == _missing.end()) {
         follow(received.following());
       }

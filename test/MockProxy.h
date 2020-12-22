@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IProxy.h"
+#include "CallHistory.h"
 
 class MockProxy : public IProxy
 {
@@ -12,14 +13,18 @@ public:
 
   void proxyToLocal()
   {
+    _calls.call("proxyToLocal");
   }
 
   void proxyToAddress(const std::string& address, int port)
   {
+    _calls.call("proxyToAddress", address, port);
   }
 
   void setHandler(IProxyHandler& handler)
   {
   }
+
+  CallHistory _calls;
 };
 
