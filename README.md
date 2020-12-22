@@ -61,13 +61,17 @@ graph TD;
   r-->p2;
   r-->p3;
 
-  s(headless-service)-->h1[hive-1]
-  s-->h2[hive-2]
-  s-->h3[hive-3]
 ```
 
 To avoid the need to a quorum, Redis Hive requires a well-known means of determining hive candidates. In Kubernetes, this is a
-DNS lookup on a headless service. Any hive instance that starts up in a new pod will be able to discover the current hive
+DNS lookup on a headless service.
+```mermaid
+graph TD;
+  s(headless-service)---h1[hive-1]
+  s---h2[hive-2]
+  s---h3[hive-3]
+```
+Any hive instance that starts up in a new pod will be able to discover the current hive
 membership and quickly identify the leader. During an election phase, the candidates exchange their timestamps of the start of
 the election. The first candidate to initiate the election will win, with the alphabetically first IP address serving as the
 tiebreaker. Generally, we expect the nodes in a Kubernetes cluster to have their system clocks synced, but this is not strictly
