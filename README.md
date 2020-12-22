@@ -53,9 +53,9 @@ to one first. A lost Kubernetes node can split the cluster.
 
 ```mermaid
 graph TD;
-  p(master-service)-->h1[redis-1<br>hive-1];
-  p-->h2[redis-2<br>hive-2];
-  p-->h3[redis-3<br>hive-3];
+  p(master-service)-->h1[hive-1<br>redis-1];
+  p-->h2[hive-2<br>redis-2];
+  p-->h3[hive-3<br>redis-3];
 
   r(replica-service)-->h1;
   r-->h2;
@@ -67,6 +67,25 @@ DNS lookup on a headless service. Any hive instance that starts up in a new pod 
 membership and quickly identify the leader. During an election phase, the candidates exchange their timestamps of the start of
 the election. The first candidate to initiate the election will win, with the alphabetically first IP address serving as the
 tiebreaker. This will work even if the nodes in the cluster do not have their system clocks in sync.
+
+```mermaid
+graph TD;
+
+  subgraph n1[follower]
+  h1[hive-1]-.-r1[redis-1];
+  end
+
+  subgraph n2[leader]
+  h2[hive-2]-->r2["redis-2 (master)"];
+  end
+
+  subgraph n3[follower]
+  h3[hive-3]-.-r3[redis-3];
+  end
+
+  h1-->r2;
+  h3-->r2;
+```
 
 To avoid the need for a client to be aware of the master, each Redis Hive instance will proxy all redis traffic to the current
 master. Each redis instance is part of the same Kubernetes service for read-only traffic, and each hive instance is part of
