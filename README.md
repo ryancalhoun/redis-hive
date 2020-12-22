@@ -53,13 +53,17 @@ down to one first. A lost Kubernetes node can split the cluster.
 
 ```mermaid
 graph TD;
-  p(master-service)-->h1[hive-1<br>redis-1];
-  p-->h2[hive-2<br>redis-2];
-  p-->h3[hive-3<br>redis-3];
+  p(master-service)-->p1[hive-1<br>redis-1];
+  p-->p2[hive-2<br>redis-2];
+  p-->p3[hive-3<br>redis-3];
 
-  r(replica-service)-->h1;
-  r-->h2;
-  r-->h3;
+  r(replica-service)-->p1;
+  r-->p2;
+  r-->p3;
+
+  s(headless-service)-->h1[hive-1]
+  s-->h2[hive-2]
+  s-->h3[hive-3]
 ```
 
 To avoid the need to a quorum, Redis Hive requires a well-known means of determining hive candidates. In Kubernetes, this is a
