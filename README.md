@@ -42,10 +42,10 @@ graph TD;
 While a sentinel cluster is an effective way to elect a new master in general, there
 are a few issues when deployed in Kubernetes. Namely, the sentinel cluster must retain its quorum when the redis master goes down
 in order to elect a new master; that same quorum must remain intact when the lost master is restarted so it can become a replica
-under the new. However, the fact that the sentinels are run in a sidecar container means that a pod restart will result in a redis
-and a sentinel at the same time. This can cause the sentinel cluster to lose its own membership, and a redis cluster with two
-masters or no masters. This means the only safe way to restart or upgrade redis is to administratively scale the statefulset down
-to one first. A lost Kubernetes node can split the cluster.
+under the new. However, the fact that the sentinels are run in a sidecar container means that a pod restart will result in the loss
+of a redis node and a sentinel at the same time. This can cause the sentinel cluster to lose its own membership, and a redis cluster
+with two masters or no masters. This means the only safe way to restart or upgrade redis is to administratively scale the statefulset
+down to one first. A lost Kubernetes node can split the cluster.
 
 
 
@@ -66,7 +66,8 @@ To avoid the need to a quorum, Redis Hive requires a well-known means of determi
 DNS lookup on a headless service. Any hive instance that starts up in a new pod will be able to discover the current hive
 membership and quickly identify the leader. During an election phase, the candidates exchange their timestamps of the start of
 the election. The first candidate to initiate the election will win, with the alphabetically first IP address serving as the
-tiebreaker. This will work even if the nodes in the cluster do not have their system clocks in sync.
+tiebreaker. Generally, we expect the nodes in a Kubernetes cluster to have their system clocks synced, but this is not strictly
+necessary.
 
 ```mermaid
 graph TD;
