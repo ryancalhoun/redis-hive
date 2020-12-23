@@ -16,6 +16,20 @@ spec:
         app: {{ .Release.Name }}
 
     spec:
+      {{- if .Values.antiAffinity }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - {{ .Release.Name }}
+              topologyKey: "kubernetes.io/hostname"
+      {{- end }}
       containers:
       - image: {{ .Values.hive.image }}
         args:
