@@ -1,5 +1,6 @@
 #include "Proxy.h"
 #include "IEventBus.h"
+#include "ILogger.h"
 #include "IProxyHandler.h"
 
 #include <cstdio> 
@@ -56,9 +57,10 @@ namespace
   }
 }
 
-Proxy::Proxy(IEventBus& eventBus, int port)
+Proxy::Proxy(IEventBus& eventBus, int port, ILogger& logger)
   : _server(*this, eventBus)
   , _eventBus(eventBus)
+  , _logger(logger)
   , _handler(NULL)
   , _local(port)
   , _interval(3000)
@@ -179,7 +181,7 @@ void Proxy::pong()
   if(_redis.read(buff, sizeof(buff))) {
     _command.clear();
     if(_redis.bytes() == 0) {
-      std::cout << "Redis disconnect" << std::endl;
+      _logger.error("Redis disconnect");
       notReady();
     } else {
       ready();
@@ -192,7 +194,7 @@ void Proxy::runCommand(const std::string& command)
 {
   if(_redis == -1) {
     if(! _redis.connect("127.0.0.1", _local)) {
-      std::cout << "Redis connect error" << std::endl;
+      _logger.error("Redis connect error");
       return notReady();
     }
     _eventBus.add(_redis, new Read(*this, &Proxy::pong));
@@ -203,7 +205,7 @@ void Proxy::runCommand(const std::string& command)
       _command = command;
       _nextCommand.clear();
     } else {
-      std::cout << "Redis send error" << std::endl;
+      _logger.error("Redis send error");
       return notReady();
     }
   } else {

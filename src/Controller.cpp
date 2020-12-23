@@ -1,5 +1,6 @@
 #include "Controller.h"
 #include "IEventBus.h"
+#include "ILogger.h"
 #include "TcpSocket.h"
 
 #include <iostream>
@@ -34,11 +35,12 @@ namespace
   };
 }
 
-Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates, const ITimeMachine& timeMachine)
+Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates, const ITimeMachine& timeMachine, ILogger& logger)
   : _server(*this, eventBus)
-  , _membership(*this, proxy, candidates, timeMachine)
   , _eventBus(eventBus)
+  , _logger(logger)
   , _interval(5000)
+  , _membership(*this, proxy, candidates, timeMachine, logger)
   , _currentClient(NULL)
 {
 }

@@ -37,7 +37,6 @@ bool TcpSocket::listen(int port)
     ::setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
 
   if(::bind(_fd, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-    std::cout << "bind error on " << port << " (" << errno << ")" << std::endl;
     _ec = errno;
     return false;
   }

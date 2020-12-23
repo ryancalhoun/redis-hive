@@ -6,6 +6,7 @@
 #include <map>
 
 class ICandidateList;
+class ILogger;
 class IMembershipHandler;
 class IProxy;
 class ITimeMachine;
@@ -13,7 +14,7 @@ class ITimeMachine;
 class Membership : protected IProxyHandler
 {
 public:
-  Membership(IMembershipHandler& handler, IProxy& proxy, const ICandidateList& candidates, const ITimeMachine& timeMachine);
+  Membership(IMembershipHandler& handler, IProxy& proxy, const ICandidateList& candidates, const ITimeMachine& timeMachine, ILogger& logger);
 
   void onRead(const Packet& received);
   void onTimer();
@@ -37,6 +38,7 @@ protected:
   IProxy& _proxy;
   const ICandidateList& _candidates;
   const ITimeMachine& _timeMachine;
+  ILogger& _logger;
   const int _interval;
 
   Packet::State _state;

@@ -18,9 +18,10 @@ namespace
   }
 }
 
-DnsCandidateList::DnsCandidateList(const std::string& dnsName, int port)
+DnsCandidateList::DnsCandidateList(const std::string& dnsName, int port, ILogger& logger)
   : _dnsName(dnsName)
   , _port(port)
+  , _logger(logger)
 {
   findSelf();
 }

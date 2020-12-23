@@ -1,4 +1,5 @@
 #include "cppunit/CppUnit.h"
+#include "MockLogger.h"
 
 class DnsCandidateListTest : public CppUnit::TestFixture
 {
@@ -14,4 +15,6 @@ public:
 
     return suite;
   }
+
+  MockLogger _logger;
 };

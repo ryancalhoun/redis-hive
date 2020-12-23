@@ -9,7 +9,12 @@ public:
   {
     return _now;
   }
+  std::string timestamp() const
+  {
+    return "";
+  }
 
   unsigned long long _now;
+
 };
 

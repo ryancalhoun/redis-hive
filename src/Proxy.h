@@ -8,11 +8,12 @@
 #include <set>
 
 class IEventBus;
+class ILogger;
 
 class Proxy : public IProxy, public ITcpServerHandler
 {
 public:
-  Proxy(IEventBus& eventBus, int port);
+  Proxy(IEventBus& eventBus, int port, ILogger& logger);
 
   virtual ~Proxy();
 
@@ -40,6 +41,7 @@ protected:
   TcpServer _server;
   TcpSocket _redis;
   IEventBus& _eventBus;
+  ILogger& _logger;
   IProxyHandler* _handler;
   const int _local;
   const int _interval;

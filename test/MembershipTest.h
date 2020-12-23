@@ -1,6 +1,7 @@
 #include "cppunit/CppUnit.h"
 
 #include "LocalhostCandidateList.h"
+#include "MockLogger.h"
 #include "MockMembershipHandler.h"
 #include "MockProxy.h"
 #include "MockTimeMachine.h"
@@ -29,5 +30,5 @@ public:
   MockProxy _proxy;
   LocalhostCandidateList _candidates;
   MockTimeMachine _timeMachine;
-
+  MockLogger _logger;
 };

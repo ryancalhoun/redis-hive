@@ -9,7 +9,7 @@ MembershipTest::MembershipTest()
 
 void MembershipTest::testAlone()
 {
-  Membership m(_handler, _proxy, _candidates, _timeMachine);
+  Membership m(_handler, _proxy, _candidates, _timeMachine, _logger);
 
   m.onTimer();
 
@@ -19,7 +19,7 @@ void MembershipTest::testAlone()
 
 void MembershipTest::testFollow()
 {
-  Membership m(_handler, _proxy, _candidates, _timeMachine);
+  Membership m(_handler, _proxy, _candidates, _timeMachine, _logger);
 
   _timeMachine._now = 0;
 
@@ -47,7 +47,7 @@ void MembershipTest::testFollow()
 void MembershipTest::testLead()
 {
   _timeMachine._now = 1000;
-  Membership m(_handler, _proxy, _candidates, _timeMachine);
+  Membership m(_handler, _proxy, _candidates, _timeMachine, _logger);
 
   _candidates.add(3001);
 

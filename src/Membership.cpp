@@ -1,5 +1,6 @@
 #include "Membership.h"
 #include "ICandidateList.h"
+#include "ILogger.h"
 #include "IMembershipHandler.h"
 #include "IProxy.h"
 #include "ITimeMachine.h"
@@ -11,11 +12,12 @@
 #include <algorithm>
 #include <iostream>
 
-Membership::Membership(IMembershipHandler& handler, IProxy& proxy, const ICandidateList& candidates, const ITimeMachine& timeMachine)
+Membership::Membership(IMembershipHandler& handler, IProxy& proxy, const ICandidateList& candidates, const ITimeMachine& timeMachine, ILogger& logger)
   : _handler(handler)
   , _proxy(proxy)
   , _candidates(candidates)
   , _timeMachine(timeMachine)
+  , _logger(logger)
   , _interval(5000)
   , _state(Packet::Alone)
   , _since(_timeMachine.now())
@@ -94,7 +96,7 @@ void Membership::onRead(const Packet& received)
   } else if(received.reason() == Packet::Ack) {
     if(_state == Packet::Proposing) {
       if(_election.size() >= _expectedCount) {
-        std::cout << "Shortcut election" << std::endl;
+        _logger.info("Shortcut Election");
         election();
       }
     }
@@ -160,7 +162,7 @@ void Membership::onTimer()
 
 void Membership::follow(const std::string& leader)
 {
-  std::cout << "Follow " << leader << std::endl;
+  _logger.info("Follow " + leader);
   if(_leader != leader || _state != Packet::Following) {
     _since = _timeMachine.now();
   }
@@ -174,7 +176,7 @@ void Membership::follow(const std::string& leader)
 
 void Membership::propose()
 {
-  std::cout << "Propose" << std::endl;
+  _logger.info("Propose");
   unsigned long long now = _timeMachine.now();
 
   if(_state != Packet::Proposing) {
@@ -193,7 +195,7 @@ void Membership::propose()
 
 void Membership::lead()
 {
-  std::cout << "Lead" << std::endl;
+  _logger.info("Lead");
   if(_state != Packet::Leading) {
     _since = _timeMachine.now();
     _proxy.proxyToLocal();
@@ -275,7 +277,7 @@ void Membership::election()
 void Membership::onProxyReady()
 {
   if(_state == Packet::NotReady) {
-    std::cout << "Proxy Ready" << std::endl;
+    _logger.info("Proxy ready");
     _state = Packet::Alone;
     _since = _timeMachine.now();
     broadcast();
@@ -287,7 +289,7 @@ void Membership::onProxyNotReady()
   Packet::State previous = _state;
 
   if(_state != Packet::NotReady) {
-    std::cout << "Proxy Not Ready" << std::endl;
+    _logger.error("Proxy not ready");
     _state = Packet::NotReady;
     _since = _timeMachine.now();
   }

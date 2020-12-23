@@ -4,6 +4,7 @@
 #include "Proxy.h"
 #include "LocalhostCandidateList.h"
 #include "DnsCandidateList.h"
+#include "StdoutLogger.h"
 #include "TimeMachine.h"
 
 #include <iostream>
@@ -54,21 +55,17 @@ bool Application::parse(int argc, const char* argv[])
 
 int Application::run()
 {
-  std::unique_ptr<ICandidateList> candidates(createCandidateList());
+  TimeMachine timeMachine;
+  StdoutLogger logger(timeMachine);
+
+  std::unique_ptr<ICandidateList> candidates(createCandidateList(logger));
   if(!candidates) {
     return 1;
   }
 
-  std::cout << candidates->getSelf() << std::endl;
-  std::vector<std::string> list = candidates->getCandidates();
-  for(std::vector<std::string>::const_iterator it = list.begin(); it != list.end(); ++it) {
-    std::cout << " c = " << *it << std::endl;
-  }
-
-  TimeMachine timeMachine;
-  EventBus eventBus(timeMachine);
-  Proxy proxy(eventBus, _redisPort);
-  Controller controller(proxy, eventBus, *candidates, timeMachine);
+  EventBus eventBus(timeMachine, logger);
+  Proxy proxy(eventBus, _redisPort, logger);
+  Controller controller(proxy, eventBus, *candidates, timeMachine, logger);
 
   if(! proxy.listen(_proxyPort)) {
     return 1;
@@ -82,7 +79,7 @@ int Application::run()
   return 0;
 }
 
-ICandidateList* Application::createCandidateList() const
+ICandidateList* Application::createCandidateList(ILogger& logger) const
 {
   if(_membership == "localhost") {
     LocalhostCandidateList* candidates = new LocalhostCandidateList(_controllerPort);
@@ -97,7 +94,7 @@ ICandidateList* Application::createCandidateList() const
       return NULL;
     }
 
-    return new DnsCandidateList(_args[0], _controllerPort);
+    return new DnsCandidateList(_args[0], _controllerPort, logger);
   }
 }
 

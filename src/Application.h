@@ -4,6 +4,7 @@
 #include <vector>
 
 class ICandidateList;
+class ILogger;
 
 class Application
 {
@@ -21,7 +22,7 @@ public:
   const std::vector<std::string>& args() const;
 
 protected:
-  ICandidateList* createCandidateList() const;
+  ICandidateList* createCandidateList(ILogger& logger) const;
 
 protected:
   int _controllerPort;

@@ -7,8 +7,9 @@
 #include <errno.h>
 #include <iostream>
 
-EventBus::EventBus(const ITimeMachine& timeMachine)
+EventBus::EventBus(const ITimeMachine& timeMachine, ILogger& logger)
   : _timeMachine(timeMachine)
+  , _logger(logger)
   , _waiter(::epoll_create(1))
 {
 }

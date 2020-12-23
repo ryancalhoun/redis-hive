@@ -9,13 +9,14 @@
 
 class ICandidateList;
 class IEventBus;
+class ILogger;
 class IProxy;
 class ITimeMachine;
 
 class Controller : public ITcpServerHandler, protected IMembershipHandler
 {
 public:
-  Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates, const ITimeMachine& timeMachine);
+  Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates, const ITimeMachine& timeMachine, ILogger& logger);
 
   bool listen(int port);
   void onAccept(const TcpSocket& client);
@@ -29,9 +30,10 @@ protected:
 
 protected:
   TcpServer _server;
-  Membership _membership;
   IEventBus& _eventBus;
+  ILogger& _logger;
   const int _interval;
+  Membership _membership;
 
   TcpSocket* _currentClient;
 };

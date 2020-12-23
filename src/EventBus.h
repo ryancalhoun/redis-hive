@@ -4,12 +4,13 @@
 #include <map>
 #include <vector>
 
+class ILogger;
 class ITimeMachine;
 
 class EventBus : public IEventBus
 {
 public:
-  EventBus(const ITimeMachine& timeMachine);
+  EventBus(const ITimeMachine& timeMachine, ILogger& logger);
   virtual ~EventBus();
 
   void add(int fd, ICallback* cb);
@@ -27,6 +28,7 @@ protected:
 
 protected:
   const ITimeMachine& _timeMachine;
+  ILogger& _logger;
   int _waiter;
 
   std::map<int,ICallback*> _callback;
