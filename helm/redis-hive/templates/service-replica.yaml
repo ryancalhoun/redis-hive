@@ -8,5 +8,5 @@ spec:
     app: {{ .Release.Name }}
   ports:
     - protocol: TCP
-      port: 6379
-      targetPort: 6379
+      port: {{ .Values.redis.port }}
+      targetPort: {{ .Values.redis.internalPort }}

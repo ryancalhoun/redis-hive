@@ -18,14 +18,34 @@ spec:
     spec:
       containers:
       - image: {{ .Values.hive.image }}
-        args: ["-o", "{{ .Release.Name }}-headless"]
+        args:
+        - -c{{ .Values.hive.controller.port }}
+        - -p{{ .Values.hive.proxy.port }}
+        - -r{{ .Values.redis.internalPort }}
+        - -o{{ .Release.Name }}-headless
         name: hive
         ports:
-        - containerPort: 3000
-        - containerPort: 7000
+        - containerPort: {{ .Values.hive.controller.port }}
+        - containerPort: {{ .Values.hive.proxy.port }}
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - echo -n e=who | nc localhost {{ .Values.hive.controller.port }} | grep -q s=[LF]
 
       - image: {{ .Values.redis.image }}
         name: redis
         ports:
-        - containerPort: 6379
+        - containerPort: {{ .Values.redis.internalPort }}
+        volumeMounts:
+        - name: config
+          mountPath: /etc/redis/
+      volumes:
+      - name: config
+        configMap:
+          name: {{ .Release.Name }}
+          items:
+          - key: redis.conf
+            path: redis.conf
 

@@ -2,5 +2,11 @@
 replicas: 3
 hive:
   image: registry.gitlab.com/leftoverbytes/redis-hive
+  controller:
+    port: 3000
+  proxy:
+    port: 7000
 redis:
   image: redis:5-alpine
+  port: 6379
+  internalPort: 6379
