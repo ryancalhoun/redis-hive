@@ -11,6 +11,8 @@ stages:
 .TEMPLATE-prep-docker:
   stage: prep
   image: docker:dind
+  except:
+  - tags
   services:
     - name: docker:dind
 
