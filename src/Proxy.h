@@ -6,6 +6,7 @@
 
 #include <map>
 #include <set>
+#include <deque>
 
 class IEventBus;
 class ILogger;
@@ -34,6 +35,7 @@ protected:
   void ping();
   void pong();
   void runCommand(const std::string& command);
+  void runNextCommand();
   void ready();
   void notReady();
 
@@ -46,8 +48,8 @@ protected:
   const int _local;
   const int _interval;
 
-  std::string _command;
-  std::string _nextCommand;
+  std::deque<std::string> _commands;
+  bool _commandInFlight;
 
   std::string _address;
   int _port;

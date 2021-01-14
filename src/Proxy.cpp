@@ -64,6 +64,7 @@ Proxy::Proxy(IEventBus& eventBus, int port, ILogger& logger)
   , _handler(NULL)
   , _local(port)
   , _interval(3000)
+  , _commandInFlight(false)
   , _alone(true)
 {
   proxyToLocal();
@@ -179,13 +180,13 @@ void Proxy::pong()
 {
   char buff[1024] = {0};
   if(_redis.read(buff, sizeof(buff))) {
-    _command.clear();
+    _commandInFlight = false;
     if(_redis.bytes() == 0) {
       _logger.error("Redis disconnect");
       notReady();
     } else {
       ready();
-      runCommand(_nextCommand);
+      return runNextCommand();
     }
   }
 }
@@ -200,16 +201,22 @@ void Proxy::runCommand(const std::string& command)
     _eventBus.add(_redis, new Read(*this, &Proxy::pong));
   }
 
-  if(_command.size() == 0) {
+  _commands.push_back(command);
+
+  return runNextCommand();
+}
+
+void Proxy::runNextCommand()
+{
+  if(_commands.size() > 0 && ! _commandInFlight) {
+    std::string command = _commands.front();
     if(_redis.write(command.c_str(), command.size())) {
-      _command = command;
-      _nextCommand.clear();
+      _commands.pop_front();
+      _commandInFlight = true;
     } else {
       _logger.error("Redis send error");
       return notReady();
     }
-  } else {
-    _nextCommand = command;
   }
 }
 
