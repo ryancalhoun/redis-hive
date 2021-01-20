@@ -15,6 +15,10 @@ public:
 
   int run();
 
+  bool usage() const;
+  const std::string& usageMessage() const;
+  const std::string& errorMessage() const;
+
   int controllerPort() const;
   int proxyPort() const;
   int redisPort() const;
@@ -33,5 +37,9 @@ protected:
 
   std::string _membership;
   std::vector<std::string> _args;
+
+  bool _usage;
+  std::string _usageMessage;
+  std::string _errorMessage;
 };
 

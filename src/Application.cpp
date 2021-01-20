@@ -7,7 +7,6 @@
 #include "StdoutLogger.h"
 #include "TimeMachine.h"
 
-#include <iostream>
 #include <memory>
 
 #include <ctype.h>
@@ -18,7 +17,30 @@ Application::Application()
   : _controllerPort(3000)
   , _proxyPort(7000)
   , _redisPort(6379)
-{}
+  , _usage(false)
+{
+  _usageMessage =
+  "Usage: redis-hive [OPTIONS]\n"
+  "\n"
+  "Options:\n"
+  "  -cPORT     Controller listen port [3000]\n"
+  "  -pPORT     Proxy listen port [7000]\n"
+  "  -rPORT     Redis listen port [6379]\n"
+  "  -aVAR      Environment variable containing redis auth password\n"
+  "  -mMETHOD   Membership method\n"
+  "  -oOPTION   Membership options\n"
+  "\n"
+  "Membership:\n"
+  "  The value of METHOD for membership can be one of `localhost' or\n"
+  "  `cluster`. If using `localhost`, specify the controller port value\n"
+  "  for each hive instance with -o. If using `dns', specify the headless\n"
+  "  service name that resolves to the cluster IP of each pod.\n"
+  "\n"
+  "  Examples:\n"
+  "  redis-hive -mlocalhost -o3000 -o3001 -o3002\n"
+  "  redis-hive -mcluster -oredis-hive-headless\n"
+  ;
+}
 
 namespace
 {
@@ -34,9 +56,13 @@ bool Application::parse(int argc, const char* argv[])
 
   int c;
   while((c = ::getopt(argc, const_cast<char* const *>(argv), "hc:p:r:a:m:o:")) != -1) {
-    std::string arg = optarg;
+    std::string arg;
+    if(optarg) {
+      arg = optarg;
+    }
     switch(c) {
       case 'h': 
+        _usage = true;
       break;
       case 'c': 
         _controllerPort = ::atoi(arg.c_str());
@@ -57,11 +83,27 @@ bool Application::parse(int argc, const char* argv[])
         _args.push_back(arg);
       break;
       default:
-        std::cout << "Unknown" << std::endl;
+    //    _errorMessage = "Unknown option '" + std::string(1, c) + "'";
+        _errorMessage = opterr;
         return false;
     }
   }
   return true;
+}
+
+bool Application::usage() const
+{
+  return _usage;
+}
+
+const std::string& Application::usageMessage() const
+{
+  return _usageMessage;
+}
+
+const std::string& Application::errorMessage() const
+{
+  return _errorMessage;
 }
 
 int Application::run()
