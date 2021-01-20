@@ -20,12 +20,20 @@ Application::Application()
   , _redisPort(6379)
 {}
 
+namespace
+{
+  std::string safenull(const char* p)
+  {
+    return p ? p : "";
+  }
+}
+
 bool Application::parse(int argc, const char* argv[])
 {
   optind = 0;
 
   int c;
-  while((c = ::getopt(argc, const_cast<char* const *>(argv), "hc:p:r:m:o:")) != -1) {
+  while((c = ::getopt(argc, const_cast<char* const *>(argv), "hc:p:r:a:m:o:")) != -1) {
     std::string arg = optarg;
     switch(c) {
       case 'h': 
@@ -38,6 +46,9 @@ bool Application::parse(int argc, const char* argv[])
       break;
       case 'r': 
         _redisPort = ::atoi(arg.c_str());
+      break;
+      case 'a': 
+        _redisAuth = ::safenull(::getenv(arg.c_str()));
       break;
       case 'm': 
         _membership = arg;
@@ -64,7 +75,7 @@ int Application::run()
   }
 
   EventBus eventBus(timeMachine, logger);
-  Proxy proxy(eventBus, _redisPort, logger);
+  Proxy proxy(eventBus, _redisPort, _redisAuth, logger);
   Controller controller(proxy, eventBus, *candidates, timeMachine, logger);
 
   if(! proxy.listen(_proxyPort)) {
@@ -111,6 +122,11 @@ int Application::proxyPort() const
 int Application::redisPort() const
 {
   return _redisPort;
+}
+
+const std::string& Application::redisAuth() const
+{
+  return _redisAuth;
 }
 
 const std::string& Application::membership() const

@@ -57,12 +57,13 @@ namespace
   }
 }
 
-Proxy::Proxy(IEventBus& eventBus, int port, ILogger& logger)
+Proxy::Proxy(IEventBus& eventBus, int port, const std::string& auth, ILogger& logger)
   : _server(*this, eventBus)
   , _eventBus(eventBus)
   , _logger(logger)
   , _handler(NULL)
   , _local(port)
+  , _auth(auth)
   , _interval(3000)
   , _commandInFlight(false)
   , _alone(true)
@@ -199,6 +200,10 @@ void Proxy::runCommand(const std::string& command)
       return notReady();
     }
     _eventBus.add(_redis, new Read(*this, &Proxy::pong));
+
+    if(_auth.size() > 0) {
+      _commands.push_back("AUTH " + _auth + "\r\n");
+    }
   }
 
   _commands.push_back(command);

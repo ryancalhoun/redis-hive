@@ -37,12 +37,15 @@ void ApplicationTest::testProxy()
 
 void ApplicationTest::testRedis()
 {
+  ::setenv("PASSVAR", "PASSWORD", 1);
+
   Application app;
-  const char* argv[] = { "app", "-r6001" };
+  const char* argv[] = { "app", "-r6001", "-aPASSVAR" };
 
   assert_true(app.parse(sizeof(argv) / sizeof(const char*), argv));
 
   assert_equal(6001, app.redisPort());
+  assert_equal("PASSWORD", app.redisAuth());
 }
 
 void ApplicationTest::testMembership()

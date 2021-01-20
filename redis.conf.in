@@ -5,3 +5,5 @@ port {{PORT}}
 pidfile redis-{{PORT}}.pid
 loglevel notice
 logfile redis-{{PORT}}.log
+requirepass {{PASS}}
+masterauth {{PASS}}

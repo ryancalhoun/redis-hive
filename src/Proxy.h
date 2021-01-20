@@ -14,7 +14,7 @@ class ILogger;
 class Proxy : public IProxy, public ITcpServerHandler
 {
 public:
-  Proxy(IEventBus& eventBus, int port, ILogger& logger);
+  Proxy(IEventBus& eventBus, int port, const std::string& auth, ILogger& logger);
 
   virtual ~Proxy();
 
@@ -46,6 +46,7 @@ protected:
   ILogger& _logger;
   IProxyHandler* _handler;
   const int _local;
+  std::string _auth;
   const int _interval;
 
   std::deque<std::string> _commands;

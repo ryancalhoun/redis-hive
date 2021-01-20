@@ -5,11 +5,13 @@ require 'timeout'
 BaseDir = File.dirname(File.dirname(File.expand_path(__FILE__)))
 
 class Hive
-  def initialize(n)
+  def initialize(n, auth: nil)
     @n = n
     @who = {}
+    @auth = auth
   end
   def start!
+    ENV['REDIS_AUTH'] = @auth
     system "#{BaseDir}/start.sh #{@n}"
     wait
   end
@@ -50,7 +52,10 @@ class Hive
     @who.values.map {|m| m['f']}.first
   end
   def _redis(cmd, *args, port:)
-    redis = Redis.new port: port
+    opts = { port: port }
+    opts[:password] = @auth if @auth
+
+    redis = Redis.new opts
     return redis.method(cmd).call *args
   ensure
     redis.close
