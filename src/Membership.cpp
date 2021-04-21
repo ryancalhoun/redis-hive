@@ -106,7 +106,14 @@ void Membership::onRead(const Packet& received)
     std::string reply = who.serialize();
     _handler.ack(who);
   }
+}
 
+void Membership::getCandidates(std::vector<std::string>& candidates) const
+{
+  candidates = _candidates.getCandidates();
+  std::sort(candidates.begin(), candidates.end());
+
+  candidates.erase(std::find(candidates.begin(), candidates.end(), _self));
 }
 
 void Membership::onTimer()
@@ -116,25 +123,24 @@ void Membership::onTimer()
   Packet packet;
   packetFor(Packet::Ping, packet);
 
+  std::vector<std::string> candidates;
+
   unsigned long long now = _timeMachine.now();
 
   if(_state == Packet::Alone || _state == Packet::Proposing) {
-    std::vector<std::string> candidates = _candidates.getCandidates();
-
-    std::sort(candidates.begin(), candidates.end());
+    getCandidates(candidates);
+    std::vector<std::string>::const_iterator it;
 
     size_t sent = 0;
-    std::vector<std::string>::const_iterator it;
     for(it = candidates.begin(); it != candidates.end(); ++it) {
-      if(*it != _self) {
-        if(_handler.ping(*it, packet)) {
-          ++sent;
-        }
+      _logger.info("Ping candidate " + *it);
+      if(_handler.ping(*it, packet)) {
+        ++sent;
       }
     }
 
     if(sent == 0) {
-      if(candidates.size() == 1 && candidates[0] == _self) {
+      if(candidates.size() == 0) {
         election();
       } else {
         propose();
@@ -155,6 +161,15 @@ void Membership::onTimer()
         _members.erase(_leader);
         propose();
         broadcast();
+      }
+    }
+  } else if(_state == Packet::Leading) {
+    getCandidates(candidates);
+    std::vector<std::string>::const_iterator it;
+    for(it = candidates.begin(); it != candidates.end(); ++it) {
+      if(_members.find(*it) == _members.end()) {
+        _logger.info("Ping new candidate " + *it);
+        _handler.ping(*it, packet);
       }
     }
   }

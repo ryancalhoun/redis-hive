@@ -14,6 +14,7 @@ public:
   void testAlone();
   void testFollow();
   void testLead();
+  void testNewCandidate();
 
 
   static CppUnit::Test* suite()
@@ -22,6 +23,7 @@ public:
     CPPUNIT_ADD_TEST(suite, testAlone);
     CPPUNIT_ADD_TEST(suite, testFollow);
     CPPUNIT_ADD_TEST(suite, testLead);
+    CPPUNIT_ADD_TEST(suite, testNewCandidate);
 
     return suite;
   }

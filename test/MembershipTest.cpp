@@ -65,3 +65,19 @@ void MembershipTest::testLead()
   assert_equal("proxyToLocal", _proxy._calls.to_s());
 }
 
+void MembershipTest::testNewCandidate()
+{
+  _timeMachine._now = 1000;
+  Membership m(_handler, _proxy, _candidates, _timeMachine, _logger);
+
+  m.onTimer();
+
+  assert_equal("", _handler._calls.to_s());
+  assert_equal("proxyToLocal", _proxy._calls.to_s());
+
+  _candidates.add(3001);
+
+  m.onTimer();
+  assert_equal("ping(127.0.0.1:3001,a=127.0.0.1:3000|e=ping|s=L|f=127.0.0.1:3000|r=6000|t=1000)", _handler._calls.to_s());
+}
+

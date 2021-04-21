@@ -24,6 +24,7 @@ protected:
   void propose();
   void lead();
 
+  void getCandidates(std::vector<std::string>& candidates) const;
   void packetFor(Packet::Reason reason, Packet& packet) const;
 
   void purge();
