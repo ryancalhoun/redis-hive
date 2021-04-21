@@ -5,12 +5,7 @@
 #include "IProxy.h"
 #include "ITimeMachine.h"
 
-#include <cstdio> 
-#include <cstdlib> 
-#include <cstring> 
-
 #include <algorithm>
-#include <iostream>
 
 Membership::Membership(IMembershipHandler& handler, IProxy& proxy, const ICandidateList& candidates, const ITimeMachine& timeMachine, ILogger& logger)
   : _handler(handler)
