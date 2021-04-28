@@ -22,6 +22,22 @@ Membership::Membership(IMembershipHandler& handler, IProxy& proxy, const ICandid
   _proxy.setHandler(*this);
 }
 
+namespace
+{
+  std::string to_s(size_t i)
+  {
+    char val[50] = {0};
+    ::snprintf(val, sizeof(val), "%lu", i);
+    return val;
+  }
+  std::string to_s(unsigned long long i)
+  {
+    char val[50] = {0};
+    ::snprintf(val, sizeof(val), "%llu", i);
+    return val;
+  }
+}
+
 void Membership::onRead(const Packet& received)
 {
   unsigned long long now = _timeMachine.now();
@@ -76,6 +92,7 @@ void Membership::onRead(const Packet& received)
 
   } else if(_state == Packet::Leading) {
     if(received.state() == Packet::Leading && _self != received.self()) {
+      _logger.debug("Received ping from leader " + received.self() + " (" + ::to_s(received.since()) + ") while leading (" + ::to_s(_since) + ")");
       // accept the older
       if(_since > received.since()) {
         follow(received.self());
@@ -92,6 +109,7 @@ void Membership::onRead(const Packet& received)
     if(_state == Packet::Proposing) {
       if(_election.size() >= _expectedCount) {
         _logger.info("Shortcut Election");
+        _logger.debug("Expected election size " + ::to_s(_expectedCount) + ", actual size " + ::to_s(_election.size()));
         election();
       }
     }
@@ -201,6 +219,10 @@ void Membership::propose()
 
   _election[_self] = _since;
   _expectedCount = _members.size();
+  _logger.debug("Expected election size " + ::to_s(_expectedCount));
+  for(std::map<std::string,unsigned long long>::const_iterator it = _members.begin(); it != _members.end(); ++it) {
+    _logger.debug("Expected member " + it->first + " (" + ::to_s(it->second) + ")");
+  }
 }
 
 void Membership::lead()
@@ -273,6 +295,7 @@ void Membership::election()
   std::map<std::string,unsigned long long>::const_iterator winner = _election.begin();
   std::map<std::string,unsigned long long>::const_iterator it;
   for(it = _election.begin(); it != _election.end(); ++it) {
+    _logger.debug("Considering " + it->first + " (" + ::to_s(it->second) + ")");
     if(it->second < winner->second - 10) {
       winner = it;
     }
