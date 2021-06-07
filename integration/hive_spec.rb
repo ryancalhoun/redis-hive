@@ -72,7 +72,7 @@ describe 'redis-hive' do
 
             hive.start!
 
-            Timeout::timeout(5) do 
+            Timeout::timeout(5) do
               until hive.direct_redis_command("get", "foo", i: lost) == "42"
                 sleep 0.5
               end
@@ -97,8 +97,8 @@ describe 'redis-hive' do
             expect(hive.direct_who(leader)['s']).to eq 'L'
 
             hive.stop(node: [leader])
-          
-            Timeout::timeout(10) do 
+
+            Timeout::timeout(15) do
               until ((1..workers).to_a - [leader]).map {|i| hive.direct_who(i) }.select {|p| p['s'] == 'L'}.size == 1
                 sleep 0.5
               end
@@ -106,6 +106,7 @@ describe 'redis-hive' do
 
             hive.start!
             expect(hive.direct_who(leader)['s']).to eq 'F'
+
           end
           it 'all redis replicas are working' do
             hive.stop(node: [leader])

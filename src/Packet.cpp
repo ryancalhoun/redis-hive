@@ -151,8 +151,6 @@ bool Packet::parse(const std::string& data)
           }
         break;
       }
-    } else {
-      return false;
     }
   }
   return true;

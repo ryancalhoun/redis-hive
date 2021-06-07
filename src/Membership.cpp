@@ -62,6 +62,8 @@ void Membership::onRead(const Packet& received)
         }
       }
       else if(_missing.find(received.following()) == _missing.end()) {
+        _logger.debug("I was proposing");
+        _logger.debug("Follow other if not missing!");
         follow(received.following());
       }
     }
@@ -86,7 +88,11 @@ void Membership::onRead(const Packet& received)
     } else {
       // accept the newer
       if(_since < received.since()) {
-        follow(received.following());
+        if(received.following().size() > 0 && _missing.find(received.following()) == _missing.end()) {
+          _logger.debug("I was following " + _leader);
+          _logger.debug("Follow newer if not missing!");
+          follow(received.following());
+        }
       }
     }
 
@@ -95,6 +101,8 @@ void Membership::onRead(const Packet& received)
       _logger.debug("Received ping from leader " + received.self() + " (" + ::to_s(received.since()) + ") while leading (" + ::to_s(_since) + ")");
       // accept the older
       if(_since > received.since()) {
+        _logger.debug("I was leading");
+        _logger.debug("Follow older");
         follow(received.self());
       }
     }
@@ -104,7 +112,6 @@ void Membership::onRead(const Packet& received)
     Packet ack;
     packetFor(Packet::Ack, ack);
     _handler.ack(ack);
-
   } else if(received.reason() == Packet::Ack) {
     if(_state == Packet::Proposing) {
       if(_election.size() >= _expectedCount) {
@@ -171,7 +178,6 @@ void Membership::onTimer()
       if(_members.size() <= 1) {
         lead();
       } else {
-        _members.erase(_leader);
         propose();
         broadcast();
       }
@@ -212,6 +218,7 @@ void Membership::propose()
   }
   if(_leader.size() > 0) {
     _missing[_leader] = now;
+    _members.erase(_leader);
     _leader.clear();
   }
 
@@ -296,15 +303,17 @@ void Membership::election()
   std::map<std::string,unsigned long long>::const_iterator it;
   for(it = _election.begin(); it != _election.end(); ++it) {
     _logger.debug("Considering " + it->first + " (" + ::to_s(it->second) + ")");
-    if(it->second < winner->second - 10) {
+    if(it->second + 10ull < winner->second) {
+      _logger.debug("Current winner " + it->first);
       winner = it;
     }
   }
 
   if(winner == _election.end() || winner->first == _self) {
+    _logger.debug("I will lead!");
     lead();
     broadcast();
-  }
+  } else { _logger.debug("I will follow " + winner->first); }
 }
 
 void Membership::onProxyReady()

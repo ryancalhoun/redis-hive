@@ -7,6 +7,8 @@ public:
   void testSerializeLeader();
   void testParse();
   void testParseLeader();
+  void testParseConstructor();
+  void testParsePartial();
 
   void testWho();
 
@@ -17,6 +19,8 @@ public:
     CPPUNIT_ADD_TEST(suite, testSerializeLeader);
     CPPUNIT_ADD_TEST(suite, testParse);
     CPPUNIT_ADD_TEST(suite, testParseLeader);
+    CPPUNIT_ADD_TEST(suite, testParseConstructor);
+    CPPUNIT_ADD_TEST(suite, testParsePartial);
 
     CPPUNIT_ADD_TEST(suite, testWho);
 

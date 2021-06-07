@@ -30,6 +30,7 @@ class Hive
       _who
 
       t1 = Time.now
+
       if t1 - t0 > 10
         raise Timeout::Error.new("Expired after #{t1-t0} seconds. Nodes: #{
             @who.values.map {|m| "#{m['a']}/#{m['s']}"}.join(", ")}. Redis replicas: #{
@@ -52,11 +53,12 @@ class Hive
     @who.values.map {|m| m['f']}.first
   end
   def _redis(cmd, *args, port:)
-    opts = { port: port }
+    opts = { port: port, connect_timeout: 0.5, reconnect_attempts: 0 }
     opts[:password] = @auth if @auth
 
     redis = Redis.new opts
     return redis.method(cmd).call *args
+  rescue Redis::TimeoutError
   ensure
     redis.close
   end
@@ -81,16 +83,27 @@ class Hive
     @who
   end
   def direct_who(i)
-    s = TCPSocket.new 'localhost', 3000 + i
-    s.write 'e=who'
-    data = s.read
-    s.close
+    t0 = Time.now
 
     info = {}
-    data.split('|').each do |part|
-      a,b = part.split('=')
-      info[a] = b
+
+    s = TCPSocket.new 'localhost', 3000 + i
+    s.write 'e=who'
+
+    begin
+      data = s.read_nonblock(80)
+      data.split('|').each do |part|
+        a,b = part.split('=')
+        info[a] = b
+      end
+    rescue IO::WaitReadable
+      if Time.now - t0 < 1
+        IO.select([s], nil, nil, 0.3)
+        retry
+      end
     end
+
+    s.close
     info
   end
 end
