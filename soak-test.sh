@@ -2,7 +2,9 @@
 
 cd $(dirname $0)
 
-helm upgrade redis-hive ./helm/redis-hive/ --install --force
+helm repo add leftoverbytes https://leftoverbytes.com/charts
+helm repo update
+helm upgrade redis-hive leftoverbytes/redis-hive --install --force
 
 iter=0
 prev=
