@@ -7,8 +7,6 @@
 #include <cstdlib> 
 #include <cstring> 
 
-#include <iostream>
-
 namespace
 {
   class Read : public IEventBus::ICallback

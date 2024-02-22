@@ -44,6 +44,7 @@ protected:
 
   Packet::State _state;
   unsigned long long _since;
+  unsigned long long _up;
 
   std::string _self;
   std::string _leader;

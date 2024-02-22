@@ -16,6 +16,7 @@ Membership::Membership(IMembershipHandler& handler, IProxy& proxy, const ICandid
   , _interval(5000)
   , _state(Packet::Alone)
   , _since(_timeMachine.now())
+  , _up(_timeMachine.now())
   , _self(candidates.getSelf())
   , _expectedCount(0)
 {
@@ -62,8 +63,6 @@ void Membership::onRead(const Packet& received)
         }
       }
       else if(_missing.find(received.following()) == _missing.end()) {
-        _logger.debug("I was proposing");
-        _logger.debug("Follow other if not missing!");
         follow(received.following());
       }
     }
@@ -87,22 +86,29 @@ void Membership::onRead(const Packet& received)
       broadcast();
     } else {
       // accept the newer
-      if(_since < received.since()) {
-        if(received.following().size() > 0 && _missing.find(received.following()) == _missing.end()) {
-          _logger.debug("I was following " + _leader);
-          _logger.debug("Follow newer if not missing!");
-          follow(received.following());
-        }
+
+      const bool tie = _since == received.since();
+      const bool otherWins = _since < received.since();
+      const bool otherIsAlphabeticallyFirst = received.following().compare(_leader) < 0;
+
+      const bool otherIsNotMissing = received.following().size() > 0 &&
+                                     _missing.find(received.following()) == _missing.end();
+
+      if(otherIsNotMissing && (otherWins || (tie && otherIsAlphabeticallyFirst))) {
+        follow(received.following());
       }
     }
 
   } else if(_state == Packet::Leading) {
     if(received.state() == Packet::Leading && _self != received.self()) {
       _logger.debug("Received ping from leader " + received.self() + " (" + ::to_s(received.since()) + ") while leading (" + ::to_s(_since) + ")");
-      // accept the older
-      if(_since > received.since()) {
-        _logger.debug("I was leading");
-        _logger.debug("Follow older");
+
+      const bool tie = _since == received.since();
+      const bool otherWins = _since > received.since();
+      const bool otherIsAlphabeticallyFirst = received.self().compare(_self) < 0;
+
+      if(otherWins || (tie && otherIsAlphabeticallyFirst)) {
+        // accept the older
         follow(received.self());
       }
     }
@@ -252,6 +258,7 @@ void Membership::packetFor(Packet::Reason reason, Packet& packet) const
   packet.reason(reason);
   packet.state(_state);
   packet.since(_since);
+  packet.up(_up);
   packet.self(_self);
   packet.following(_leader);
   packet.proxy(_proxy.getLocalPort());
@@ -303,17 +310,16 @@ void Membership::election()
   std::map<std::string,unsigned long long>::const_iterator it;
   for(it = _election.begin(); it != _election.end(); ++it) {
     _logger.debug("Considering " + it->first + " (" + ::to_s(it->second) + ")");
-    if(it->second + 10ull < winner->second) {
+    if(it->second < winner->second) {
       _logger.debug("Current winner " + it->first);
       winner = it;
     }
   }
 
   if(winner == _election.end() || winner->first == _self) {
-    _logger.debug("I will lead!");
     lead();
     broadcast();
-  } else { _logger.debug("I will follow " + winner->first); }
+  }
 }
 
 void Membership::onProxyReady()

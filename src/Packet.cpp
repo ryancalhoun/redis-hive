@@ -15,6 +15,7 @@ void Packet::clear()
   _state = Alone;
   _reason = None;
   _since = 0;
+  _up = 0;
   _self.clear();
   _following.clear();
   _proxy = 0;
@@ -47,6 +48,7 @@ std::string Packet::serialize() const
   data += "|f=" + _following;
   data += "|r=" + ::to_s(_proxy);
   data += "|t=" + ::to_s(_since);
+  data += "|u=" + ::to_s(_up);
 
   std::vector<std::string>::const_iterator it;
   for(it = _members.begin(); it != _members.end(); ++it) {
@@ -76,6 +78,11 @@ Packet::Reason Packet::reason() const
 unsigned long long Packet::since() const
 {
   return _since;
+}
+
+unsigned long long Packet::up() const
+{
+  return _up;
 }
 
 const std::string& Packet::self() const
@@ -131,6 +138,9 @@ bool Packet::parse(const std::string& data)
         case 't':
           _since = ::strtoull(val.c_str(), NULL, 10);
         break;
+        case 'u':
+          _up = ::strtoull(val.c_str(), NULL, 10);
+        break;
         case 'a':
           _self = val;
         break;
@@ -169,6 +179,11 @@ void Packet::reason(Reason reason)
 void Packet::since(unsigned long long since)
 {
   _since = since;
+}
+
+void Packet::up(unsigned long long up)
+{
+  _up = up;
 }
 
 void Packet::self(const std::string& self)

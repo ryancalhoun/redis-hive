@@ -9,22 +9,22 @@
 
 bool DnsLookup::lookup(const std::string& name, std::vector<std::string>& ips) const
 {
-	struct addrinfo hints = {0};
-	hints.ai_family = AF_INET;
+  struct addrinfo hints = {0};
+  hints.ai_family = AF_INET;
   hints.ai_protocol = IPPROTO_TCP;
-	hints.ai_socktype = SOCK_STREAM;
+  hints.ai_socktype = SOCK_STREAM;
 
-	struct addrinfo* r = NULL;
+  struct addrinfo* r = NULL;
 
-	if(::getaddrinfo(name.c_str(), NULL, &hints, &r) != 0) {
+  if(::getaddrinfo(name.c_str(), NULL, &hints, &r) != 0) {
     return false;
   }
 
-	for(; r; r = r->ai_next) {
-		ips.push_back(::inet_ntoa(((struct sockaddr_in*)r->ai_addr)->sin_addr));
-	}
+  for(; r; r = r->ai_next) {
+    ips.push_back(::inet_ntoa(((struct sockaddr_in*)r->ai_addr)->sin_addr));
+  }
 
-	::freeaddrinfo(r);
+  ::freeaddrinfo(r);
 
   return true;
 }

@@ -31,6 +31,7 @@ public:
   State state() const;
   Reason reason() const;
   unsigned long long since() const;
+  unsigned long long up() const;
   const std::string& self() const;
   const std::string& following() const;
   int proxy() const;
@@ -40,6 +41,7 @@ public:
   void state(State state);
   void reason(Reason reason);
   void since(unsigned long long since);
+  void up(unsigned long long up);
   void self(const std::string& self);
   void following(const std::string& leader);
   void proxy(int port);
@@ -50,6 +52,7 @@ protected:
   State _state;
   Reason _reason;
   unsigned long long _since;
+  unsigned long long _up;
   std::string _self;
   std::string _following;
   int _proxy;

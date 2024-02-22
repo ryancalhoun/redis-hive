@@ -9,7 +9,7 @@ UdpSocket::UdpSocket()
 
 bool UdpSocket::connect(const std::string& host, int port)
 {
-	_fd = ::socket(PF_INET, SOCK_DGRAM|SOCK_CLOEXEC|SOCK_NONBLOCK, IPPROTO_UDP);
+  _fd = ::socket(PF_INET, SOCK_DGRAM|SOCK_CLOEXEC|SOCK_NONBLOCK, IPPROTO_UDP);
   if(_fd == -1) {
     return false;
   }
@@ -19,7 +19,7 @@ bool UdpSocket::connect(const std::string& host, int port)
   ::inet_aton(host.c_str(), &peer.sin_addr);
   peer.sin_port = htons(port); 
 
-	if(::connect(_fd, (const struct sockaddr*)&peer, sizeof(peer)) != 0) {
+  if(::connect(_fd, (const struct sockaddr*)&peer, sizeof(peer)) != 0) {
     close();
     return false;
   }

@@ -3,8 +3,6 @@
 #include "ILogger.h"
 #include "TcpSocket.h"
 
-#include <iostream>
-
 namespace
 {
   class Ping : public IEventBus::ICallback

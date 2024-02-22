@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <cstdlib> 
 #include <errno.h>
-#include <iostream>
 
 EventBus::EventBus(const ITimeMachine& timeMachine, ILogger& logger)
   : _timeMachine(timeMachine)

@@ -52,7 +52,7 @@ void MembershipTest::testLead()
   _candidates.add(3001);
 
   m.onTimer();
-  assert_equal("ping(127.0.0.1:3001,a=127.0.0.1:3000|e=ping|s=A|f=|r=6000|t=1000)", _handler._calls.to_s());
+  assert_equal("ping(127.0.0.1:3001,a=127.0.0.1:3000|e=ping|s=A|f=|r=6000|t=1000|u=1000)", _handler._calls.to_s());
 
   Packet peer;
   peer.reason(Packet::Ack);
@@ -78,6 +78,6 @@ void MembershipTest::testNewCandidate()
   _candidates.add(3001);
 
   m.onTimer();
-  assert_equal("ping(127.0.0.1:3001,a=127.0.0.1:3000|e=ping|s=L|f=127.0.0.1:3000|r=6000|t=1000)", _handler._calls.to_s());
+  assert_equal("ping(127.0.0.1:3001,a=127.0.0.1:3000|e=ping|s=L|f=127.0.0.1:3000|r=6000|t=1000|u=1000)", _handler._calls.to_s());
 }
 
