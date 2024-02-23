@@ -31,6 +31,13 @@ namespace
     Controller& _controller;
     TcpSocket _client;
   };
+
+  std::string to_s(int port)
+  {
+    char val[8] = {0};
+    ::snprintf(val, sizeof(val), "%i", port);
+    return val;
+  }
 }
 
 Controller::Controller(IProxy& proxy, IEventBus& eventBus, const ICandidateList& candidates, const ITimeMachine& timeMachine, ILogger& logger)
@@ -56,7 +63,7 @@ bool Controller::listen(int port)
 
   _eventBus.every(_interval, new Ping(*this));
 
-  std::cout << "Controller listening on port " << port << std::endl;
+  _logger.info("Controller listening on port " + ::to_s(port));
 
   return true;
 }

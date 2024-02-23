@@ -134,7 +134,7 @@ bool Proxy::listen(int port)
 
   _eventBus.every(_interval, new Read(*this, &Proxy::ping));
 
-  std::cout << "Proxy listening on port " << port << std::endl;
+  _logger.info("Proxy listening on port " + ::to_s(port));
 
   return true;
 }
